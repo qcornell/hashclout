@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HASHCLOUT - Where Hedera Projects Gain Clout</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Background shapes -->
+        <div class="bg-shape shape-1"></div>
+        <div class="bg-shape shape-2"></div>
+        <div class="bg-shape shape-3"></div>
+
+        <!-- Header -->
+        <header>
+            <div class="logo">HASH<span>CLOUT</span></div>
+            <div class="nav-links">
+                <a href="#" class="nav-link active">Home</a>
+                <a href="projects.html" class="nav-link">Projects</a>
+                <a href="earn.html" class="nav-link">Earn/Buy Clout</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+                <a href="settings.html" class="nav-link">Settings</a>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <!-- Login/Signup Button -->
+                <button class="login-button" onclick="openAuthModal('login')">
+                    <i class="fa-solid fa-user"></i>
+                    Sign up/Login
+                </button>
+                
+                <!-- Connect Wallet Button -->
+                <button class="connect-wallet-button" onclick="openWalletConnectModal()">
+                    <i class="fa-solid fa-wallet"></i>
+                    Connect Wallet
+                </button>
+                
+                <!-- User menu dropdown -->
+                <div class="user-menu">
+                    <button class="user-menu-button" id="userMenuButton">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <div class="user-menu-dropdown" id="userMenuDropdown">
+                        <a href="profile.html" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            Profile
+                        </a>
+                        <a href="projects.html" class="dropdown-item">
+                            <i class="fas fa-rocket"></i>
+                            My Projects
+                        </a>
+                        <a href="earn.html" class="dropdown-item">
+                            <i class="fas fa-coins"></i>
+                            Earn/Buy Clout
+                        </a>
+                        <a href="settings.html" class="dropdown-item">
+                            <i class="fas fa-cog"></i>
+                            Settings
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Disconnect
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hero section -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1 class="hero-title">Where Hedera's <span>Newest</span> Projects Gain Clout</h1>
+                <p class="hero-subtitle">Connect with the Hedera ecosystem, discover innovative projects, and help promising ideas gain visibility.</p>
+                <div class="hero-actions">
+                    <button class="primary-button">
+                        Projects Gaining Clout
+                        <i class="fa-solid fa-rocket"></i>
+                    </button>
+                    <button class="secondary-button">
+                        Post Your Project
+                        <i class="fa-solid fa-upload"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="hero-leaderboard">
+                <div class="champions-banner">
+                    <div class="banner-header">
+                        <div class="banner-title">
+                            <i class="fas fa-trophy"></i>
+                            Top CLOUT Champions
+                        </div>
+                        <button class="view-all">
+                            View All
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                    <div class="champions-container">
+                        <!-- Champion 1 -->
+                        <div class="champion-tile">
+                            <div class="champion-rank rank-1">1</div>
+                            <div class="champion-avatar color-1">SJ</div>
+                            <div class="champion-info">
+                                <div class="champion-name">Sarah Johnson</div>
+                                <div class="champion-username">@sarahjohnson</div>
+                            </div>
+                            <div class="champion-clout">
+                                <i class="fas fa-gem"></i>
+                                1.25M
+                            </div>
+                        </div>
+
+                        <!-- Champion 2 -->
+                        <div class="champion-tile">
+                            <div class="champion-rank rank-2">2</div>
+                            <div class="champion-avatar color-2">AC</div>
+                            <div class="champion-info">
+                                <div class="champion-name">Alex Chen</div>
+                                <div class="champion-username">@alexchen</div>
+                            </div>
+                            <div class="champion-clout">
+                                <i class="fas fa-gem"></i>
+                                854K
+                            </div>
+                        </div>
+
+                        <!-- Champion 3 -->
+                        <div class="champion-tile">
+                            <div class="champion-rank rank-3">3</div>
+                            <div class="champion-avatar color-3">ML</div>
+                            <div class="champion-info">
+                                <div class="champion-name">Michael Lee</div>
+                                <div class="champion-username">@mikelee</div>
+                            </div>
+                            <div class="champion-clout">
+                                <i class="fas fa-gem"></i>
+                                723K
+                            </div>
+                        </div>
+
+                        <!-- Champion 4 -->
+                        <div class="champion-tile">
+                            <div class="champion-rank">4</div>
+                            <div class="champion-avatar color-4">EW</div>
+                            <div class="champion-info">
+                                <div class="champion-name">Emma Wilson</div>
+                                <div class="champion-username">@emmawilson</div>
+                            </div>
+                            <div class="champion-clout">
+                                <i class="fas fa-gem"></i>
+                                615K
+                            </div>
+                        </div>
+
+                        <!-- Champion 5 -->
+                        <div class="champion-tile">
+                            <div class="champion-rank">5</div>
+                            <div class="champion-avatar color-5">DP</div>
+                            <div class="champion-info">
+                                <div class="champion-name">David Park</div>
+                                <div class="champion-username">@davidpark</div>
+                            </div>
+                            <div class="champion-clout">
+                                <i class="fas fa-gem"></i>
+                                520K
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <div class="footer-content">
+                <div class="footer-logo">HASH<span>CLOUT</span></div>
+                <div class="footer-links">
+                    <a href="#" class="footer-link">Terms</a>
+                    <a href="#" class="footer-link">Privacy</a>
+                    <a href="#" class="footer-link">Contact</a>
+                </div>
+            </div>
+        </footer>
+        
+        <!-- Mobile Bottom Navigation (shown on small screens) -->
+        <div class="mobile-menu">
+            <a href="index.html" class="mobile-menu-item active">
+                <i class="fas fa-home mobile-menu-icon"></i>
+                <span>Home</span>
+            </a>
+            <a href="projects.html" class="mobile-menu-item">
+                <i class="fas fa-rocket mobile-menu-icon"></i>
+                <span>Projects</span>
+            </a>
+            <a href="earn.html" class="mobile-menu-item">
+                <i class="fas fa-coins mobile-menu-icon"></i>
+                <span>Earn/Buy</span>
+            </a>
+            <a href="leaderboard.html" class="mobile-menu-item">
+                <i class="fas fa-trophy mobile-menu-icon"></i>
+                <span>Leaders</span>
+            </a>
+            <a href="settings.html" class="mobile-menu-item">
+                <i class="fas fa-cog mobile-menu-icon"></i>
+                <span>Settings</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Traditional Auth Modal -->
+    <div class="auth-modal-overlay" id="loginModalOverlay" style="display: none;">
+        <div class="auth-modal">
+            <!-- Login Form -->
+            <div id="loginStep">
+                <div class="auth-modal-header">
+                    <h3 class="auth-modal-title">Sign in to HASHCLOUT</h3>
+                    <button class="close-modal" onclick="closeLoginModal()">&times;</button>
+                </div>
+                <div class="auth-modal-body">
+                    <p class="auth-description">Welcome back! Sign in to continue your HASHCLOUT journey.</p>
+                    
+                    <div class="form-group">
+                        <label for="loginEmail">Email Address</label>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="Enter your email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="Enter your password">
+                        <div class="form-hint" style="text-align: right;">
+                            <a href="#" onclick="showForgotPassword()" style="color: var(--primary-purple);">Forgot password?</a>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="login()">
+                        Sign In
+                    </button>
+                    
+                    <div style="text-align: center; margin-top: 20px; position: relative;">
+                        <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(255, 255, 255, 0.1);"></div>
+                        <span style="position: relative; background: var(--secondary-bg); padding: 0 10px; color: rgba(255, 255, 255, 0.5); font-size: 14px;">Or</span>
+                    </div>
+                    
+                    <button class="connect-wallet-btn" style="margin-top: 20px;" onclick="openWalletConnectModal(); closeLoginModal();">
+                        <div class="wallet-icon hashpack">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="wallet-details">
+                            <div class="wallet-name">Connect with HashPack</div>
+                            <div class="wallet-description">Use your wallet to sign in securely</div>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+
+                    <div class="auth-footer">
+                        Don't have an account? <a href="#" onclick="showSignupStep()">Sign up</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signupStep" style="display: none;">
+                <div class="auth-modal-header">
+                    <h3 class="auth-modal-title">Create your account</h3>
+                    <button class="close-modal" onclick="closeLoginModal()">&times;</button>
+                </div>
+                <div class="auth-modal-body">
+                    <p class="auth-description">Join HASHCLOUT to discover and boost Hedera projects.</p>
+                    
+                    <div class="form-group">
+                        <label for="signupUsername">Username</label>
+                        <input type="text" id="signupUsername" class="form-control" placeholder="Choose a username">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="signupEmail">Email Address</label>
+                        <input type="email" id="signupEmail" class="form-control" placeholder="Enter your email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input type="password" id="signupPassword" class="form-control" placeholder="Create a password">
+                        <div class="form-hint">Must be at least 8 characters</div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="signup()">
+                        Create Account
+                    </button>
+                    
+                    <div style="text-align: center; margin-top: 20px; position: relative;">
+                        <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(255, 255, 255, 0.1);"></div>
+                        <span style="position: relative; background: var(--secondary-bg); padding: 0 10px; color: rgba(255, 255, 255, 0.5); font-size: 14px;">Or</span>
+                    </div>
+                    
+                    <button class="connect-wallet-btn" style="margin-top: 20px;" onclick="openWalletConnectModal(); closeLoginModal();">
+                        <div class="wallet-icon hashpack">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="wallet-details">
+                            <div class="wallet-name">Sign up with HashPack</div>
+                            <div class="wallet-description">Use your wallet for quick registration</div>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+
+                    <div class="auth-footer">
+                        Already have an account? <a href="#" onclick="showLoginStep()">Sign in</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Forgot Password Form -->
+            <div id="forgotPasswordStep" style="display: none;">
+                <div class="auth-modal-header">
+                    <h3 class="auth-modal-title">Reset your password</h3>
+                    <button class="close-modal" onclick="closeLoginModal()">&times;</button>
+                </div>
+                <div class="auth-modal-body">
+                    <p class="auth-description">Enter your email and we'll send you instructions to reset your password.</p>
+                    
+                    <div class="form-group">
+                        <label for="resetEmail">Email Address</label>
+                        <input type="email" id="resetEmail" class="form-control" placeholder="Enter your email">
+                    </div>
+
+                    <button class="btn btn-primary" onclick="sendPasswordReset()">
+                        Send Reset Link
+                    </button>
+
+                    <div class="auth-footer">
+                        <a href="#" onclick="showLoginStep()">Back to login</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet Connect Modal -->
+    <div class="auth-modal-overlay" id="authModalOverlay" style="display: none;">
+        <div class="auth-modal">
+            <!-- Step 1: Connect Wallet -->
+            <div id="connectWalletStep">
+                <div class="auth-modal-header">
+                    <h3 class="auth-modal-title">Connect Your Wallet</h3>
+                    <button class="close-modal" onclick="closeAuthModal()">&times;</button>
+                </div>
+                <div class="auth-modal-body">
+                    <p class="auth-description">Connect your wallet to access HASHCLOUT and discover Hedera's top projects.</p>
+                    
+                    <div class="status-alert info">
+                        <i class="fas fa-info-circle"></i>
+                        <div>Your wallet is only used for authentication and doesn't share your private keys.</div>
+                    </div>
+
+                    <div class="wallet-options">
+                        <button class="connect-wallet-btn primary" onclick="connectWallet('hashpack')">
+                            <div class="wallet-icon hashpack">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div class="wallet-details">
+                                <div class="wallet-name">HashPack</div>
+                                <div class="wallet-description">Connect with HashPack wallet</div>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+
+                        <button class="connect-wallet-btn" onclick="connectWallet('blade')">
+                            <div class="wallet-icon">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div class="wallet-details">
+                                <div class="wallet-name">Blade</div>
+                                <div class="wallet-description">Connect with Blade wallet</div>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="auth-footer">
+                        Don't have a wallet? <a href="https://www.hashpack.app/" target="_blank">Download HashPack</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connecting State (Shown while checking wallet) -->
+            <div id="connectingState" class="connecting-state">
+                <div class="spinner"></div>
+                <div class="connecting-text">Connecting to wallet...</div>
+                <div class="connecting-subtext">Please approve the connection request in your wallet</div>
+            </div>
+
+            <!-- Account Setup (Only for new users) -->
+            <div id="accountSetupStep" class="account-setup-form">
+                <div class="auth-modal-header">
+                    <h3 class="auth-modal-title">Complete Your Profile</h3>
+                    <button class="close-modal" onclick="closeAuthModal()">&times;</button>
+                </div>
+                <div class="auth-modal-body">
+                    <p class="auth-description">Welcome to HASHCLOUT! Let's set up your profile.</p>
+                    
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" class="form-control" placeholder="Choose a unique username">
+                        <div class="form-hint">This will be your @handle on the platform</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" class="form-control" placeholder="Enter your email">
+                        <div class="form-hint">We'll never share your email with anyone else</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Profile Picture</label>
+                        <div class="avatar-upload-container">
+                            <div class="avatar-upload" id="avatarUpload">
+                                <i class="fas fa-plus"></i>
+                                <input type="file" id="profileImageUpload" class="file-upload" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="form-hint" style="text-align: center;">Click to upload a profile picture</div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="completeProfile()">
+                        Complete Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
