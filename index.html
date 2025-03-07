@@ -6,10 +6,1274 @@
     <title>HASHCLOUT - Where Hedera Projects Gain Clout</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Your existing CSS styles remain the same */
+        :root {
+            --primary-bg: #0e0b1f;
+            --secondary-bg: #1a162f;
+            --primary-purple: #a74dfc;
+            --secondary-purple: #7928ca;
+            --accent-red: #ff3d57;
+            --accent-blue: #4d79ff;
+            --accent-pink: #ff66c4;
+            --accent-orange: #ff9966;
+            --accent-green: #2dd4bf;
+            --gradient-button: linear-gradient(135deg, #f13939, #ff9966);
+            --gradient-primary: linear-gradient(135deg, #5643cc, #742ddd, #ff66c4, #ff9966);
+            --text-color: #ffffff;
+            --gold: #FFD700;
+            --silver: #C0C0C0;
+            --bronze: #CD7F32;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            overflow-x: hidden;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 75% 30%, rgba(121, 40, 202, 0.2) 0%, rgba(14, 11, 31, 0) 50%);
+        }
+
+        .container {
+            width: 100%;
+            min-height: 100vh;
+            position: relative;
+            max-width: 1920px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        /* Header styles */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 5%;
+            position: relative;
+            z-index: 10;
+            width: 100%;
+        }
+
+        /* Logo styles - Updated to support image with text fallback */
+        .logo {
+            position: relative;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+        
+        .logo img {
+            height: 40px;
+            width: auto;
+            transition: transform 0.3s;
+        }
+        
+        .logo img:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Text-based logo */
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            display: flex;
+        }
+        
+        .logo-text .hash {
+            color: #ffffff;
+        }
+        
+        .logo-text .clout {
+            color: var(--accent-red);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .connect-wallet-button {
+            background: rgba(167, 77, 252, 0.1);
+            border: 1px solid rgba(167, 77, 252, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .connect-wallet-button:hover {
+            background: rgba(167, 77, 252, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .connect-wallet-button i {
+            color: var(--primary-purple);
+        }
+
+        /* Login Button Styles */
+        .login-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .login-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .login-button i {
+            color: var(--accent-blue);
+        }
+
+        /* User menu dropdown */
+        .user-menu {
+            position: relative;
+            margin-left: 15px;
+        }
+
+        .user-menu-button {
+            background: rgba(167, 77, 252, 0.1);
+            border: 1px solid rgba(167, 77, 252, 0.3);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .user-menu-button:hover {
+            background: rgba(167, 77, 252, 0.2);
+        }
+
+        .user-menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--secondary-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            width: 200px;
+            padding: 8px;
+            margin-top: 8px;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .user-menu-dropdown.show {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 14px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-item i {
+            color: var(--primary-purple);
+            width: 16px;
+            text-align: center;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 5px 0;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Hero section */
+        .hero {
+            display: flex;
+            min-height: 80vh;
+            position: relative;
+            padding: 0 5%;
+            overflow: hidden;
+            justify-content: center;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            gap: 5%;
+        }
+
+        .hero-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-width: 600px;
+            position: relative;
+            z-index: 2;
+            padding-left: 5%;
+        }
+
+        .hero-title {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .hero-title span {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 30px;
+            line-height: 1.6;
+            max-width: 90%;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .primary-button {
+            background: var(--gradient-button);
+            border: none;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .primary-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(241, 57, 57, 0.2);
+        }
+
+        .secondary-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .secondary-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-3px);
+        }
+
+        .hero-leaderboard {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+            max-width: 480px;
+            margin-left: 5%;
+        }
+
+        /* Background shapes */
+        .bg-shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            z-index: 0;
+        }
+
+        .shape-1 {
+            top: -200px;
+            left: -200px;
+            width: 600px;
+            height: 600px;
+            background: var(--secondary-purple);
+        }
+
+        .shape-2 {
+            bottom: -200px;
+            right: -200px;
+            width: 500px;
+            height: 500px;
+            background: var(--accent-red);
+        }
+
+        .shape-3 {
+            top: 20%;
+            right: 20%;
+            width: 300px;
+            height: 300px;
+            background: var(--accent-blue);
+        }
+
+        /* Champions Banner / Leaderboard */
+        .champions-banner {
+            width: 100%;
+            background: rgba(26, 22, 47, 0.5);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 2;
+        }
+
+        .champions-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, 
+                rgba(167, 77, 252, 0.05) 0%, 
+                rgba(255, 102, 196, 0.05) 50%, 
+                rgba(255, 153, 102, 0.05) 100%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .banner-header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(14, 11, 31, 0.4);
+        }
+
+        .banner-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .banner-title i {
+            color: var(--primary-purple);
+            animation: pulse 2s infinite;
+        }
+
+        .view-all {
+            padding: 6px 14px;
+            background: rgba(167, 77, 252, 0.2);
+            border: 1px solid rgba(167, 77, 252, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-all:hover {
+            background: var(--primary-purple);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(167, 77, 252, 0.3);
+        }
+
+        .champions-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px;
+        }
+
+        .champion-tile {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 12px;
+            transition: all 0.3s;
+            position: relative;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .champion-tile:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .champion-rank {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .rank-1 {
+            background: var(--gold);
+            color: #000;
+        }
+
+        .rank-2 {
+            background: var(--silver);
+            color: #000;
+        }
+
+        .rank-3 {
+            background: var(--bronze);
+            color: #000;
+        }
+
+        .champion-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-right: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .champion-tile:nth-child(1) .champion-avatar {
+            border-color: var(--gold);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .champion-tile:nth-child(2) .champion-avatar {
+            border-color: var(--silver);
+            box-shadow: 0 0 10px rgba(192, 192, 192, 0.3);
+        }
+
+        .champion-tile:nth-child(3) .champion-avatar {
+            border-color: var(--bronze);
+            box-shadow: 0 0 10px rgba(205, 127, 50, 0.3);
+        }
+
+        .champion-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .champion-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .champion-name {
+            font-weight: 600;
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .champion-username {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .champion-clout {
+            padding: 6px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        .champion-tile:nth-child(1) .champion-clout {
+            background: linear-gradient(to right, rgba(0, 0, 0, 0.2), rgba(255, 215, 0, 0.1));
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .champion-tile:nth-child(2) .champion-clout {
+            background: linear-gradient(to right, rgba(0, 0, 0, 0.2), rgba(192, 192, 192, 0.1));
+            border: 1px solid rgba(192, 192, 192, 0.2);
+        }
+
+        .champion-tile:nth-child(3) .champion-clout {
+            background: linear-gradient(to right, rgba(0, 0, 0, 0.2), rgba(205, 127, 50, 0.1));
+            border: 1px solid rgba(205, 127, 50, 0.2);
+        }
+
+        .champion-clout i {
+            color: var(--primary-purple);
+        }
+
+        .champion-tile:nth-child(1) .champion-clout i {
+            color: var(--gold);
+        }
+
+        .champion-tile:nth-child(2) .champion-clout i {
+            color: var(--silver);
+        }
+
+        .champion-tile:nth-child(3) .champion-clout i {
+            color: var(--bronze);
+        }
+
+        /* Trending ticker */
+        .trending-ticker {
+            width: 100%;
+            background: rgba(14, 11, 31, 0.7);
+            padding: 10px 0;
+            overflow: hidden;
+            position: relative;
+            z-index: 3;
+            margin-top: 60px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .ticker-container {
+            display: flex;
+            animation: tickerScroll 30s linear infinite;
+            white-space: nowrap;
+        }
+
+        .ticker-item {
+            display: flex;
+            align-items: center;
+            margin-right: 40px;
+            padding: 8px 15px;
+            background: rgba(167, 77, 252, 0.07);
+            border-radius: 30px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .ticker-item:hover {
+            background: rgba(167, 77, 252, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .ticker-item img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 10px;
+            object-fit: cover;
+        }
+
+        .ticker-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .ticker-price {
+            font-size: 14px;
+            color: var(--accent-green);
+        }
+
+        .price-down {
+            color: var(--accent-red);
+        }
+
+        /* Footer */
+        footer {
+            background: rgba(10, 8, 20, 0.8);
+            padding: 30px 20px;
+            position: relative;
+            z-index: 2;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: auto;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Footer logo styles - Updated to support image with text fallback */
+        .footer-logo {
+            position: relative;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+        
+        .footer-logo img {
+            height: 30px; 
+            width: auto;
+        }
+        
+        .footer-logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            display: flex;
+        }
+        
+        .footer-logo-text .hash {
+            color: #ffffff;
+        }
+        
+        .footer-logo-text .clout {
+            color: var(--accent-red); 
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-link {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .footer-link:hover {
+            color: white;
+        }
+
+        /* Animations */
+        @keyframes rotate {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes tickerScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Mobile nav menu */
+        .mobile-menu {
+            display: none;
+        }
+
+        /* Auth Modal Styles */
+        .auth-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 8, 20, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .auth-modal {
+            background: var(--secondary-bg);
+            border-radius: 16px;
+            width: 95%;
+            max-width: 420px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            animation: modalSlideIn 0.4s ease;
+        }
+
+        .auth-modal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            z-index: 1;
+        }
+
+        .auth-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .auth-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .close-modal:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .auth-modal-body {
+            padding: 24px;
+        }
+
+        .auth-description {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+
+        .wallet-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .connect-wallet-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            text-align: left;
+        }
+
+        .connect-wallet-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .connect-wallet-btn.primary {
+            background: rgba(167, 77, 252, 0.1);
+            border: 1px solid rgba(167, 77, 252, 0.3);
+        }
+
+        .connect-wallet-btn.primary:hover {
+            background: rgba(167, 77, 252, 0.15);
+        }
+
+        .wallet-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--primary-purple);
+        }
+
+        .wallet-icon.hashpack {
+            background: #8257F5;
+            color: white;
+        }
+
+        .wallet-details {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .wallet-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--text-color);
+        }
+
+        .wallet-description {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .auth-footer {
+            text-align: center;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 20px;
+        }
+
+        .auth-footer a {
+            color: var(--primary-purple);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .auth-footer a:hover {
+            color: var(--accent-pink);
+            text-decoration: underline;
+        }
+
+        .status-alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .status-alert.info {
+            background: rgba(77, 121, 255, 0.1);
+            border: 1px solid rgba(77, 121, 255, 0.3);
+            color: var(--accent-blue);
+        }
+
+        .status-alert i {
+            margin-top: 3px;
+        }
+
+        /* Loading state */
+        .connecting-state {
+            display: none;
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .connecting-state.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(167, 77, 252, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary-purple);
+            margin: 0 auto 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        .connecting-text {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .connecting-subtext {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Account setup form (For new users) */
+        .account-setup-form {
+            display: none; /* Initially hidden */
+        }
+
+        .account-setup-form.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-control {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 14px;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 6px;
+        }
+
+        .avatar-upload-container {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        .avatar-upload {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: rgba(255, 255, 255, 0.6);
+            background-size: cover;
+            background-position: center;
+        }
+
+        .avatar-upload:hover {
+            border-color: var(--primary-purple);
+            color: var(--primary-purple);
+        }
+
+        .avatar-upload i {
+            font-size: 24px;
+            transition: all 0.2s;
+        }
+
+        .avatar-upload:hover i {
+            transform: scale(1.1);
+        }
+
+        .avatar-upload.has-image i {
+            display: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--gradient-button);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(241, 57, 57, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* File upload styling */
+        .file-upload {
+            display: none;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes modalSlideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Media queries */
+        @media (max-width: 1200px) {
+            .hero-title {
+                font-size: 3.5rem;
+            }
+            
+            .hero {
+                padding: 0 20px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .hero-title {
+                font-size: 3rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                flex-direction: column;
+                padding-top: 20px;
+                min-height: auto;
+                gap: 40px;
+            }
+
+            .hero-content {
+                padding: 40px 0 0;
+                text-align: center;
+                align-items: center;
+                max-width: 100%;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1rem;
+                max-width: 100%;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .hero-leaderboard {
+                width: 100%;
+                max-width: 100%;
+                margin-left: 0;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .champions-container {
+                gap: 5px;
+            }
+
+            .champion-clout {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+
+            .champion-name {
+                font-size: 14px;
+            }
+
+            .champion-username {
+                font-size: 11px;
+            }
+
+            .banner-title {
+                font-size: 16px;
+            }
+
+            .view-all {
+                font-size: 12px;
+                padding: 5px 10px;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            
+            header div {
+                gap: 8px;
+            }
+            
+            .login-button, .connect-wallet-button {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+            
+            /* Show mobile menu on small screens */
+            .mobile-menu {
+                display: flex;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: rgba(14, 11, 31, 0.95);
+                backdrop-filter: blur(10px);
+                z-index: 100;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .mobile-menu-item {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 10px;
+                color: rgba(255, 255, 255, 0.7);
+                text-decoration: none;
+                font-size: 12px;
+                transition: all 0.3s;
+            }
+            
+            .mobile-menu-item.active {
+                color: var(--primary-purple);
+            }
+            
+            .mobile-menu-icon {
+                font-size: 18px;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
+        <!-- Your existing HTML structure remains the same -->
         <!-- Background shapes -->
         <div class="bg-shape shape-1"></div>
         <div class="bg-shape shape-2"></div>
@@ -17,11 +1281,14 @@
 
         <!-- Header -->
         <header>
-            <div class="logo">
-                <img src="images/logo.png" alt="HASHCLOUT Logo" style="height: 40px; width: auto;">
-            </div>
+            <a href="index.html" class="logo">
+                <img src="images/logo.png" alt="HASHCLOUT" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="logo-text" style="display:none">
+                    <span class="hash">HASH</span><span class="clout">CLOUT</span>
+                </div>
+            </a>
             <div class="nav-links">
-                <a href="index.html" class="nav-link active">Home</a>
+                <a href="#" class="nav-link active">Home</a>
                 <a href="projects.html" class="nav-link">Projects</a>
                 <a href="earnclout.html" class="nav-link">Earn/Buy Clout</a>
                 <a href="leaderboard.html" class="nav-link">Leaderboard</a>
@@ -79,18 +1346,14 @@
                 <h1 class="hero-title">Where Hedera's <span>Newest</span> Projects Gain Clout</h1>
                 <p class="hero-subtitle">Connect with the Hedera ecosystem, discover innovative projects, and help promising ideas gain visibility.</p>
                 <div class="hero-actions">
-                    <a href="projects.html" style="text-decoration: none;">
-                        <button class="primary-button">
-                            Projects Gaining Clout
-                            <i class="fa-solid fa-rocket"></i>
-                        </button>
-                    </a>
-                    <a href="share-project.html" style="text-decoration: none;">
-                        <button class="secondary-button">
-                            Post Your Project
-                            <i class="fa-solid fa-upload"></i>
-                        </button>
-                    </a>
+                    <button class="primary-button">
+                        Projects Gaining Clout
+                        <i class="fa-solid fa-rocket"></i>
+                    </button>
+                    <button class="secondary-button">
+                        Post Your Project
+                        <i class="fa-solid fa-upload"></i>
+                    </button>
                 </div>
             </div>
             <div class="hero-leaderboard">
@@ -109,7 +1372,9 @@
                         <!-- Champion 1 -->
                         <div class="champion-tile">
                             <div class="champion-rank rank-1">1</div>
-                            <div class="champion-avatar color-1">SJ</div>
+                            <div class="champion-avatar">
+                                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23ff3d57'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3ESJ%3C/text%3E%3C/svg%3E" alt="1st Place">
+                            </div>
                             <div class="champion-info">
                                 <div class="champion-name">Sarah Johnson</div>
                                 <div class="champion-username">@sarahjohnson</div>
@@ -123,7 +1388,9 @@
                         <!-- Champion 2 -->
                         <div class="champion-tile">
                             <div class="champion-rank rank-2">2</div>
-                            <div class="champion-avatar color-2">AC</div>
+                            <div class="champion-avatar">
+                                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23a74dfc'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EAC%3C/text%3E%3C/svg%3E" alt="2nd Place">
+                            </div>
                             <div class="champion-info">
                                 <div class="champion-name">Alex Chen</div>
                                 <div class="champion-username">@alexchen</div>
@@ -137,7 +1404,9 @@
                         <!-- Champion 3 -->
                         <div class="champion-tile">
                             <div class="champion-rank rank-3">3</div>
-                            <div class="champion-avatar color-3">ML</div>
+                            <div class="champion-avatar">
+                                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23ff9966'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EML%3C/text%3E%3C/svg%3E" alt="3rd Place">
+                            </div>
                             <div class="champion-info">
                                 <div class="champion-name">Michael Lee</div>
                                 <div class="champion-username">@mikelee</div>
@@ -151,7 +1420,9 @@
                         <!-- Champion 4 -->
                         <div class="champion-tile">
                             <div class="champion-rank">4</div>
-                            <div class="champion-avatar color-4">EW</div>
+                            <div class="champion-avatar">
+                                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%234d79ff'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EEW%3C/text%3E%3C/svg%3E" alt="4th Place">
+                            </div>
                             <div class="champion-info">
                                 <div class="champion-name">Emma Wilson</div>
                                 <div class="champion-username">@emmawilson</div>
@@ -165,7 +1436,9 @@
                         <!-- Champion 5 -->
                         <div class="champion-tile">
                             <div class="champion-rank">5</div>
-                            <div class="champion-avatar color-5">DP</div>
+                            <div class="champion-avatar">
+                                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%232dd4bf'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EDP%3C/text%3E%3C/svg%3E" alt="5th Place">
+                            </div>
                             <div class="champion-info">
                                 <div class="champion-name">David Park</div>
                                 <div class="champion-username">@davidpark</div>
@@ -180,12 +1453,73 @@
             </div>
         </section>
 
+        <!-- Trending ticker -->
+        <div class="trending-ticker">
+            <div class="ticker-container">
+                <!-- Ticker items - duplicated for smooth loop -->
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23ff3d57'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHB%3C/text%3E%3C/svg%3E" alt="HBAR">
+                    <span class="ticker-name">HBAR</span>
+                    <span class="ticker-price">$0.087 +2.4%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23a74dfc'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3ESC%3C/text%3E%3C/svg%3E" alt="SaucerSwap">
+                    <span class="ticker-name">SAUCE</span>
+                    <span class="ticker-price">$0.0032 +5.1%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%234d79ff'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHD%3C/text%3E%3C/svg%3E" alt="HeadStarter">
+                    <span class="ticker-name">HEAD</span>
+                    <span class="ticker-price">$0.0014 -1.2%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23ff9966'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHX%3C/text%3E%3C/svg%3E" alt="HEX">
+                    <span class="ticker-name">HEX</span>
+                    <span class="ticker-price">$0.0065 +0.8%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%232dd4bf'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHS%3C/text%3E%3C/svg%3E" alt="HashScan">
+                    <span class="ticker-name">HSCAN</span>
+                    <span class="ticker-price">$0.0021 -0.5%</span>
+                </div>
+                <!-- Duplicate for seamless looping -->
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23ff3d57'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHB%3C/text%3E%3C/svg%3E" alt="HBAR">
+                    <span class="ticker-name">HBAR</span>
+                    <span class="ticker-price">$0.087 +2.4%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23a74dfc'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3ESC%3C/text%3E%3C/svg%3E" alt="SaucerSwap">
+                    <span class="ticker-name">SAUCE</span>
+                    <span class="ticker-price">$0.0032 +5.1%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%234d79ff'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHD%3C/text%3E%3C/svg%3E" alt="HeadStarter">
+                    <span class="ticker-name">HEAD</span>
+                    <span class="ticker-price">$0.0014 -1.2%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23ff9966'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHX%3C/text%3E%3C/svg%3E" alt="HEX">
+                    <span class="ticker-name">HEX</span>
+                    <span class="ticker-price">$0.0065 +0.8%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%232dd4bf'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHS%3C/text%3E%3C/svg%3E" alt="HashScan">
+                    <span class="ticker-name">HSCAN</span>
+                    <span class="ticker-price">$0.0021 -0.5%</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer>
             <div class="footer-content">
-                <div class="footer-logo">
-                    <img src="images/logo.png" alt="HASHCLOUT Logo" style="height: 30px; width: auto;">
-                </div>
+                <a href="index.html" class="footer-logo">
+                    <img src="images/logo.png" alt="HASHCLOUT" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="footer-logo-text" style="display:none">
+                        <span class="hash">HASH</span><span class="clout">CLOUT</span>
+                    </div>
+                </a>
                 <div class="footer-links">
                     <a href="#" class="footer-link">Terms</a>
                     <a href="#" class="footer-link">Privacy</a>
@@ -219,6 +1553,7 @@
         </div>
     </div>
 
+    <!-- UPDATED MODAL CONTENT -->
     <!-- Traditional Auth Modal -->
     <div class="auth-modal-overlay" id="loginModalOverlay" style="display: none;">
         <div class="auth-modal">
@@ -441,6 +1776,245 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
+    <script>
+        // Your existing JavaScript remains the same
+        // JavaScript to handle image error and show text fallback
+        document.addEventListener("DOMContentLoaded", function() {
+            // Check if logo image fails to load
+            var logoImg = document.querySelector('.logo img');
+            var footerLogoImg = document.querySelector('.footer-logo img');
+            
+            logoImg.onerror = function() {
+                this.style.display = 'none';
+                this.nextElementSibling.style.display = 'flex';
+            };
+            
+            footerLogoImg.onerror = function() {
+                this.style.display = 'none';
+                this.nextElementSibling.style.display = 'flex';
+            };
+            
+            // Rest of your JavaScript
+        });
+
+        // Primary hero button click handler - Projects Gaining Clout
+        document.querySelector('.primary-button').addEventListener('click', function() {
+            window.location.href = 'projects.html';
+        });
+
+        // Secondary hero button click handler - Post Your Project
+        document.querySelector('.secondary-button').addEventListener('click', function() {
+            window.location.href = 'share-project.html';
+        });
+
+        // Leaderboard view button
+        document.querySelector('.view-all').addEventListener('click', function() {
+            window.location.href = 'leaderboard.html';
+        });
+        
+        // Champion tile click handler
+        document.querySelectorAll('.champion-tile').forEach(tile => {
+            tile.addEventListener('click', function() {
+                const championName = this.querySelector('.champion-name').textContent;
+                window.location.href = `profile.html?name=${encodeURIComponent(championName)}`;
+            });
+        });
+        
+        // User menu dropdown
+        const userMenuButton = document.getElementById('userMenuButton');
+        const userMenuDropdown = document.getElementById('userMenuDropdown');
+        
+        userMenuButton.addEventListener('click', function() {
+            userMenuDropdown.classList.toggle('show');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!userMenuButton.contains(event.target) && !userMenuDropdown.contains(event.target)) {
+                userMenuDropdown.classList.remove('show');
+            }
+        });
+
+        // Wallet Connection Modal Functions
+        function openWalletConnectModal() {
+            document.getElementById('authModalOverlay').style.display = 'flex';
+            document.getElementById('connectWalletStep').style.display = 'block';
+            document.getElementById('connectingState').style.display = 'none';
+            document.getElementById('accountSetupStep').style.display = 'none';
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModalOverlay').style.display = 'none';
+        }
+
+        function connectWallet(walletType) {
+            // Show connecting state
+            document.getElementById('connectWalletStep').style.display = 'none';
+            document.getElementById('connectingState').classList.add('active');
+            
+            // In a real implementation, you would:
+            // 1. Connect to the selected wallet using their SDK
+            // 2. Check if the user already exists in your database
+            // 3. Show the account setup step only for new users, or redirect to dashboard for existing users
+            
+            setTimeout(() => {
+                document.getElementById('connectingState').classList.remove('active');
+                
+                // Simulate checking if user exists
+                const isNewUser = Math.random() > 0.5; // Randomly determine if new user for demo
+                
+                if (isNewUser) {
+                    // For new users, show the profile setup step
+                    document.getElementById('accountSetupStep').style.display = 'block';
+                } else {
+                    // For existing users, close the modal and redirect/show dashboard
+                    closeAuthModal();
+                    
+                    // Here you would redirect to dashboard or refresh the current page
+                    alert("Welcome back! You're now connected."); // Replace with redirect in real implementation
+                }
+            }, 1500); // Simulate connection delay
+        }
+
+        function completeProfile() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            
+            if (!username || !email) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            // In a real implementation, you would:
+            // 1. Validate the username (check availability, format, etc.)
+            // 2. Validate the email format
+            // 3. Upload the profile image if provided
+            // 4. Create the user record in your database
+            // 5. Redirect to dashboard
+            
+            closeAuthModal();
+            alert("Profile created successfully! Welcome to HASHCLOUT."); // Replace with redirect in real implementation
+        }
+
+        // Login Modal Functions
+        function openAuthModal(type) {
+            document.getElementById('loginModalOverlay').style.display = 'flex';
+            if (type === 'signup') {
+                showSignupStep();
+            } else {
+                showLoginStep();
+            }
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModalOverlay').style.display = 'none';
+        }
+
+        function showLoginStep() {
+            document.getElementById('loginStep').style.display = 'block';
+            document.getElementById('signupStep').style.display = 'none';
+            document.getElementById('forgotPasswordStep').style.display = 'none';
+        }
+
+        function showSignupStep() {
+            document.getElementById('loginStep').style.display = 'none';
+            document.getElementById('signupStep').style.display = 'block';
+            document.getElementById('forgotPasswordStep').style.display = 'none';
+        }
+
+        function showForgotPassword() {
+            document.getElementById('loginStep').style.display = 'none';
+            document.getElementById('signupStep').style.display = 'none';
+            document.getElementById('forgotPasswordStep').style.display = 'block';
+        }
+
+        function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            // Here you would handle the actual login process
+            // For demo purposes, we'll just close the modal
+            closeLoginModal();
+            alert('Login successful!');
+        }
+
+        function signup() {
+            const username = document.getElementById('signupUsername').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            
+            if (!username || !email || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            if (password.length < 8) {
+                alert('Password must be at least 8 characters');
+                return;
+            }
+            
+            // Here you would handle the actual signup process
+            // For demo purposes, we'll just close the modal
+            closeLoginModal();
+            alert('Account created successfully!');
+        }
+
+        function sendPasswordReset() {
+            const email = document.getElementById('resetEmail').value;
+            
+            if (!email) {
+                alert('Please enter your email');
+                return;
+            }
+            
+            // Here you would handle sending the password reset email
+            // For demo purposes, we'll just show a message
+            alert(`Password reset link sent to ${email}`);
+            showLoginStep();
+        }
+
+        // Handle profile image upload
+        document.addEventListener('DOMContentLoaded', function() {
+            const avatarUpload = document.getElementById('avatarUpload');
+            const fileInput = document.getElementById('profileImageUpload');
+            
+            if (avatarUpload && fileInput) {
+                avatarUpload.addEventListener('click', function() {
+                    fileInput.click();
+                });
+                
+                fileInput.addEventListener('change', function() {
+                    if (this.files && this.files[0]) {
+                        const reader = new FileReader();
+                        
+                        reader.onload = function(e) {
+                            avatarUpload.style.backgroundImage = `url(${e.target.result})`;
+                            avatarUpload.classList.add('has-image');
+                        }
+                        
+                        reader.readAsDataURL(this.files[0]);
+                    }
+                });
+            }
+            
+            // Close modals if clicking outside
+            document.getElementById('authModalOverlay').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeAuthModal();
+                }
+            });
+            
+            document.getElementById('loginModalOverlay').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeLoginModal();
+                }
+            });
+        });
+    </script>
 </body>
 </html>

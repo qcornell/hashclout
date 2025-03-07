@@ -60,23 +60,20 @@
         }
 
         .logo {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            background: linear-gradient(to right, #ffffff, #a74dfc);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
             position: relative;
             display: flex;
             align-items: center;
         }
 
-        .logo span {
-            background: linear-gradient(to right, #ff3d57, #ff9966);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
+        .logo img {
+            height: 30px;
+            width: auto;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+
+        .logo img:hover {
+            transform: scale(1.05);
         }
 
         .nav-links {
@@ -757,20 +754,15 @@
         }
 
         .footer-logo {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            background: linear-gradient(to right, #ffffff, #a74dfc);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
+            position: relative;
+            display: flex;
+            align-items: center;
         }
 
-        .footer-logo span {
-            background: linear-gradient(to right, #ff3d57, #ff9966);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
+        .footer-logo img {
+            height: 25px;
+            width: auto;
+            object-fit: contain;
         }
 
         .footer-links {
@@ -834,7 +826,9 @@
 
         <!-- Header -->
         <header>
-            <div class="logo">HASH<span>CLOUT</span></div>
+            <a href="index.html" class="logo">
+                <img src="images/logo.png" alt="HASHCLOUT Logo">
+            </a>
             <div class="nav-links">
                 <a href="index.html" class="nav-link">Home</a>
                 <a href="projects.html" class="nav-link">Projects</a>
@@ -982,7 +976,9 @@
         <!-- Footer -->
         <footer>
             <div class="footer-content">
-                <div class="footer-logo">HASH<span>CLOUT</span></div>
+                <a href="index.html" class="footer-logo">
+                    <img src="images/logo.png" alt="HASHCLOUT Logo">
+                </a>
                 <div class="footer-links">
                     <a href="#" class="footer-link">Terms</a>
                     <a href="#" class="footer-link">Privacy</a>
