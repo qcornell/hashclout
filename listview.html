@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects List View - HASHCLOUT</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-bg: #0e0b1f;
+            --secondary-bg: #1a162f;
+            --card-bg: #231d3f;
+            --primary-purple: #a74dfc;
+            --secondary-purple: #7928ca;
+            --accent-red: #ff3d57;
+            --accent-blue: #4d79ff;
+            --accent-pink: #ff66c4;
+            --accent-orange: #ff9966;
+            --accent-green: #2dd4bf;
+            --gradient-button: linear-gradient(135deg, #f13939, #ff9966);
+            --gradient-primary: linear-gradient(135deg, #5643cc, #742ddd, #ff66c4, #ff9966);
+            --text-color: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --gold: #FFD700;
+            --silver: #C0C0C0;
+            --bronze: #CD7F32;
+            --like-green: #4ade80;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            min-height: 100vh;
+            position: relative;
+            padding-bottom: 40px;
+        }
+
+        /* Logo Header */
+        .logo-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(14, 11, 31, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: linear-gradient(to right, #ffffff, #a74dfc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo span {
+            background: linear-gradient(to right, #ff3d57, #ff9966);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        /* Top Navigation Bar */
+        .top-nav {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            background: rgba(14, 11, 31, 0.9);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            z-index: 90;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .nav-item.active, 
+        .nav-item:hover {
+            color: white;
+        }
+
+        .nav-item i {
+            margin-right: 6px;
+            font-size: 1rem;
+        }
+
+        .nav-item.active i {
+            color: var(--primary-purple);
+        }
+
+        /* Search Area */
+        .search-area {
+            max-width: 400px;
+            flex: 1;
+            margin: 0 20px;
+        }
+
+        .search-bar {
+            display: flex;
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 8px 12px;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-button {
+            background-color: var(--primary-purple);
+            color: white;
+            border: none;
+            padding: 0 15px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .search-button:hover {
+            background-color: var(--secondary-purple);
+        }
+
+        /* Page Title */
+        .page-title {
+            margin-top: 130px;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #ffffff, var(--primary-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            padding: 0 20px 20px;
+            margin-bottom: 20px;
+        }
+
+        .filter-button {
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .filter-button:hover {
+            background-color: rgba(167, 77, 252, 0.1);
+            color: var(--primary-purple);
+            border-color: var(--primary-purple);
+        }
+
+        .filter-button.active {
+            background-color: var(--primary-purple);
+            color: white;
+            border-color: var(--primary-purple);
+        }
+
+        /* Project Grid */
+        .projects-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px 40px;
+        }
+
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .project-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .project-image {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            position: relative;
+            display: block;
+        }
+
+        .project-image-container {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .project-play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .project-card:hover .project-play-button {
+            opacity: 1;
+        }
+
+        .project-details {
+            padding: 15px;
+        }
+
+        .project-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .project-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .project-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .project-title-creator {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .project-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .project-creator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .project-creator i {
+            color: var(--primary-purple);
+            font-size: 12px;
+        }
+
+        .project-stats {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 12px;
+            margin-top: 12px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .project-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .project-stat i {
+            font-size: 14px;
+        }
+
+        .project-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--primary-purple);
+            color: white;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 2;
+        }
+
+        .trending-badge {
+            background: linear-gradient(to right, var(--accent-red), var(--accent-orange));
+        }
+
+        .new-badge {
+            background: linear-gradient(to right, var(--accent-blue), var(--accent-green));
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 40px 0;
+            gap: 10px;
+        }
+
+        .page-item {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            background-color: var(--secondary-bg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .page-item:hover {
+            background-color: rgba(167, 77, 252, 0.2);
+            color: var(--primary-purple);
+        }
+
+        .page-item.active {
+            background-color: var(--primary-purple);
+            color: white;
+        }
+
+        .page-arrow {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            background-color: var(--secondary-bg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .page-arrow:hover {
+            background-color: rgba(167, 77, 252, 0.2);
+            color: var(--primary-purple);
+        }
+
+        .page-arrow.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Media Queries */
+        @media (max-width: 992px) {
+            .nav-item span {
+                display: none;
+            }
+            
+            .nav-item i {
+                margin-right: 0;
+                font-size: 1.2rem;
+            }
+            
+            .nav-menu {
+                gap: 15px;
+            }
+            
+            .search-area {
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .projects-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 15px;
+            }
+
+            .page-title {
+                font-size: 1.5rem;
+                margin-top: 120px;
+                padding: 10px;
+            }
+            
+            .top-nav {
+                padding: 8px 15px;
+            }
+            
+            .search-area {
+                margin: 0 10px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .projects-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-section {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                justify-content: flex-start;
+                padding-bottom: 15px;
+                margin-bottom: 15px;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none; /* Firefox */
+            }
+
+            .filter-section::-webkit-scrollbar {
+                display: none; /* Chrome, Safari */
+            }
+
+            .filter-button {
+                flex-shrink: 0;
+            }
+            
+            .search-input {
+                width: 100%;
+                max-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Logo Header -->
+    <header class="logo-header">
+        <div class="logo">HASH<span>CLOUT</span></div>
+    </header>
+
+    <!-- Top Navigation -->
+    <div class="top-nav">
+        <div class="nav-menu">
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="video-view.html" class="nav-item">
+                <i class="fas fa-play"></i>
+                <span>Videos</span>
+            </a>
+            <a href="leaderboard.html" class="nav-item">
+                <i class="fas fa-trophy"></i>
+                <span>Leaderboard</span>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+        </div>
+        
+        <div class="search-area">
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Search projects...">
+                <button class="search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Title -->
+    <h1 class="page-title">Discover Projects</h1>
+
+    <!-- Filter Buttons -->
+    <div class="filter-section">
+        <button class="filter-button active">All Projects</button>
+        <button class="filter-button">New</button>
+        <button class="filter-button">Token</button>
+        <button class="filter-button">NFT</button>
+        <button class="filter-button">Games</button>
+        <button class="filter-button">DAO</button>
+        <button class="filter-button">Tools</button>
+    </div>
+
+    <!-- Projects Grid -->
+    <div class="projects-container">
+        <div class="projects-grid" id="projects-grid">
+            <!-- Project cards will be dynamically added here -->
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            <div class="page-arrow disabled">
+                <i class="fas fa-chevron-left"></i>
+            </div>
+            <div class="page-item active">1</div>
+            <div class="page-item">2</div>
+            <div class="page-item">3</div>
+            <div class="page-arrow">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample project data
+        const projectsData = [
+            {
+                id: 'project1',
+                title: 'SaucerSwap',
+                creator: 'SaucerSwap Team',
+                logo: 'https://ui-avatars.com/api/?name=ST&background=a74dfc&color=fff',
+                thumbnailUrl: 'https://placehold.co/600x400/1a162f/ffffff?text=SaucerSwap',
+                likes: 1326,
+                views: 23540,
+                days: 5,
+                category: 'Token',
+                trending: true,
+                verified: true
+            },
+            {
+                id: 'project2',
+                title: 'METAHASH NFT',
+                creator: 'HashArtists',
+                logo: 'https://ui-avatars.com/api/?name=H&background=ff3d57&color=fff',
+                thumbnailUrl: 'https://placehold.co/600x400/1a162f/ffffff?text=METAHASH',
+                likes: 957,
+                views: 18750,
+                days: 2,
+                category: 'NFT',
+                trending: true,
+                verified: true
+            },
+            {
+                id: 'project3',
+                title: 'HashScan',
+                creator: 'HashPack',
+                logo: 'https://ui-avatars.com/api/?name=H&background=2dd4bf&color=fff',
+                thumbnailUrl: 'https://placehold.co/600x400/1a162f/ffffff?text=HashScan',
+                likes: 783,
+                views: 12480,
+                days: 8,
+                category: 'Tools',
+                trending: false,
+                verified: true
+            },
+            {
+                id: 'project4',
+                title: 'Hash Heroes',
+                creator: 'GameDAO',
+                logo: 'https://ui-avatars.com/api/?name=G&background=ff9966&color=fff',
+                thumbnailUrl: 'https://placehold.co/600x400/1a162f/ffffff?text=Hash+Heroes',
+                likes: 1104,
+                views: 20150,
+                days: 1,
+                category: 'Games',
+                trending: true,
+                new: true,
+                verified: false
+            },
+            {
+                id: 'project5',
+                title: 'HbarWallet',
+                creator: 'HbarDev',
+                logo: 'https://ui-avatars.com/api/?name=HW&background=4d79ff&color=fff',
+                thumbnailUrl: 'https://placehold.co/600x400/1a162f/ffffff?text=HbarWallet',
+                likes: 652,
+                views: 9870,
+                days: 12,
+                category: 'Tools',
+                trending: false,
+                verified: false
+            },
+            {
+                id: 'project6',
+                title: 'HeliSwap DEX',
+                creator: 'Heli Finance',
+                logo: 'https://ui-avatars.com/api/?name=HF&background=a74dfc&color=fff',
+                thumbnailUrl: 'https://placehold.co/600x400/1a162f/ffffff?text=HeliSwap',
+                likes: 1250,
+                views: 21300,
+                days: 6,
+                category: 'Token',
+                trending: true,
+                verified: true
+            },
+            {
+                id: 'project7',
+                title: 'Guardians NFT',
+                creator: 'HTS Collective',
+                logo: 'https://ui-avatars.com/api/?name=HC&background=ff66c4&color=fff',
+                thumbnailUrl: 'https://placehold.co/600x400/1a162f/ffffff?text=Guardians',
+                likes: 891,
+                views: 14700,
+                days: 4,
+                category: 'NFT',
+                trending: false,
+                verified: true
+            },
+            {
+                id: 'project8',
+                title: 'Hashgraph Empire',
+                creator: 'HashDevs',
+                logo: 'https://ui-avatars.com/api/?name=HD&background=ff9966&color=fff',
+                thumbnailUrl: 'https://placehold.co/600x400/1a162f/ffffff?text=Hashgraph+Empire',
+                likes: 732,
+                views: 11200,
+                days: 0,
+                category: 'Games',
+                trending: false,
+                new: true,
+                verified: false
+            },
+            {
+                id: 'project9',
+                title: 'Hbar Pay',
+                creator: 'PayDAO',
+                logo: 'https://ui-avatars.com/api/?name=PD&background=2dd4bf&color=fff',
+                thumbnailUrl: 'https://placehold.co/600x400/1a162f/ffffff?text=Hbar+Pay',
+                likes: 547,
+                views: 8210,
+                days: 7,
+                category: 'Tools',
+                trending: false,
+                verified: true
+            },
+            {
+                id: 'project10',
+                title: 'HashDAO',
+                creator: 'NodeOps',
+                logo: 'https://ui-avatars.com/api/?name=NO&background=4d79ff&color=fff',
+                thumbnailUrl: 'https://placehold.co/600x400/1a162f/ffffff?text=HashDAO',
+                likes: 863,
+                views: 13450,
+                days: 9,
+                category: 'DAO',
+                trending: false,
+                verified: true
+            },
+            {
+                id: 'project11',
+                title: 'HashLend',
+                creator: 'LendDAO',
+                logo: 'https://ui-avatars.com/api/?name=LD&background=a74dfc&color=fff',
+                thumbnailUrl: 'https://placehold.co/600x400/1a162f/ffffff?text=HashLend',
+                likes: 712,
+                views: 10870,
+                days: 3,
+                category: 'Token',
+                trending: false,
+                new: true,
+                verified: false
+            },
+            {
+                id: 'project12',
+                title: 'Pixel Legends',
+                creator: 'PixelDAO',
+                logo: 'https://ui-avatars.com/api/?name=PX&background=ff3d57&color=fff',
+                thumbnailUrl: 'https://placehold.co/600x400/1a162f/ffffff?text=Pixel+Legends',
+                likes: 923,
+                views: 16740,
+                days: 5,
+                category: 'NFT',
+                trending: true,
+                verified: true
+            }
+        ];
+
+        // Format numbers (e.g., 1500 -> 1.5K)
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            } else if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            } else {
+                return num.toString();
+            }
+        }
+
+        // Relative time formatter
+        function formatTime(days) {
+            if (days === 0) {
+                return 'Today';
+            } else if (days === 1) {
+                return 'Yesterday';
+            } else {
+                return `${days} days ago`;
+            }
+        }
+
+        // Populate the projects grid
+        function populateProjects(filterCategory = 'All Projects') {
+            const projectsGrid = document.getElementById('projects-grid');
+            projectsGrid.innerHTML = '';
+
+            // Filter projects based on selected category
+            let filteredProjects = projectsData;
+            if (filterCategory !== 'All Projects') {
+                filteredProjects = projectsData.filter(project => 
+                    filterCategory === 'New' ? project.new : project.category === filterCategory
+                );
+            }
+
+            filteredProjects.forEach(project => {
+                const projectCard = document.createElement('div');
+                projectCard.className = 'project-card';
+                
+                // Badge display logic
+                let badgeHTML = '';
+                if (project.new) {
+                    badgeHTML = `<div class="project-badge new-badge">NEW</div>`;
+                } else if (project.trending) {
+                    badgeHTML = `<div class="project-badge trending-badge">TRENDING</div>`;
+                }
+
+                projectCard.innerHTML = `
+                    ${badgeHTML}
+                    <div class="project-image-container">
+                        <img src="${project.thumbnailUrl}" class="project-image" alt="${project.title}">
+                        <div class="project-play-button">
+                            <i class="fas fa-play"></i>
+                        </div>
+                    </div>
+                    <div class="project-details">
+                        <div class="project-header">
+                            <div class="project-logo">
+                                <img src="${project.logo}" alt="${project.title} Logo">
+                            </div>
+                            <div class="project-title-creator">
+                                <div class="project-title">${project.title}</div>
+                                <div class="project-creator">
+                                    ${project.verified ? '<i class="fas fa-check-circle"></i>' : ''}
+                                    by ${project.creator}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="project-stats">
+                            <div class="project-stat">
+                                <i class="fas fa-thumbs-up"></i>
+                                <span>${formatNumber(project.likes)}</span>
+                            </div>
+                            <div class="project-stat">
+                                <i class="fas fa-eye"></i>
+                                <span>${formatNumber(project.views)}</span>
+                            </div>
+                            <div class="project-stat">
+                                <i class="fas fa-clock"></i>
+                                <span>${formatTime(project.days)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Make the card clickable to navigate to project details
+                projectCard.addEventListener('click', () => {
+                    window.location.href = `project.html?id=${project.id}`;
+                });
+
+                projectsGrid.appendChild(projectCard);
+            });
+        }
+
+        // Filter buttons functionality
+        document.querySelectorAll('.filter-button').forEach(button => {
+            button.addEventListener('click', () => {
+                // Clear existing active state
+                document.querySelectorAll('.filter-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // Set active state
+                button.classList.add('active');
+                
+                // Filter projects based on selected category
+                const filterCategory = button.textContent;
+                populateProjects(filterCategory);
+            });
+        });
+
+        // Pagination functionality
+        document.querySelectorAll('.page-item').forEach(pageItem => {
+            pageItem.addEventListener('click', () => {
+                // Clear existing active state
+                document.querySelectorAll('.page-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // Set active state
+                pageItem.classList.add('active');
+                
+                // Page change logic would go here
+                // For demo, just repopulate
+                const activeFilter = document.querySelector('.filter-button.active').textContent;
+                populateProjects(activeFilter);
+            });
+        });
+
+        // Search functionality
+        const searchInput = document.querySelector('.search-input');
+        const searchButton = document.querySelector('.search-button');
+        
+        searchButton.addEventListener('click', () => {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            if (searchTerm === '') {
+                // If search is empty, just show all projects with the current filter
+                const activeFilter = document.querySelector('.filter-button.active').textContent;
+                populateProjects(activeFilter);
+                return;
+            }
+            
+            // Filter projects based on search term
+            const projectsGrid = document.getElementById('projects-grid');
+            projectsGrid.innerHTML = '';
+            
+            const searchResults = projectsData.filter(project => 
+                project.title.toLowerCase().includes(searchTerm) || 
+                project.creator.toLowerCase().includes(searchTerm) ||
+                project.category.toLowerCase().includes(searchTerm)
+            );
+            
+            if (searchResults.length === 0) {
+                projectsGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 50px; color: var(--text-secondary);">
+                        <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 20px; color: var(--primary-purple);"></i>
+                        <h3>No projects found</h3>
+                        <p>Try different keywords or browse by category</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            searchResults.forEach(project => {
+                const projectCard = document.createElement('div');
+                projectCard.className = 'project-card';
+                
+                // Badge display logic
+                let badgeHTML = '';
+                if (project.new) {
+                    badgeHTML = `<div class="project-badge new-badge">NEW</div>`;
+                } else if (project.trending) {
+                    badgeHTML = `<div class="project-badge trending-badge">TRENDING</div>`;
+                }
+
+                projectCard.innerHTML = `
+                    ${badgeHTML}
+                    <div class="project-image-container">
+                        <img src="${project.thumbnailUrl}" class="project-image" alt="${project.title}">
+                        <div class="project-play-button">
+                            <i class="fas fa-play"></i>
+                        </div>
+                    </div>
+                    <div class="project-details">
+                        <div class="project-header">
+                            <div class="project-logo">
+                                <img src="${project.logo}" alt="${project.title} Logo">
+                            </div>
+                            <div class="project-title-creator">
+                                <div class="project-title">${project.title}</div>
+                                <div class="project-creator">
+                                    ${project.verified ? '<i class="fas fa-check-circle"></i>' : ''}
+                                    by ${project.creator}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="project-stats">
+                            <div class="project-stat">
+                                <i class="fas fa-thumbs-up"></i>
+                                <span>${formatNumber(project.likes)}</span>
+                            </div>
+                            <div class="project-stat">
+                                <i class="fas fa-eye"></i>
+                                <span>${formatNumber(project.views)}</span>
+                            </div>
+                            <div class="project-stat">
+                                <i class="fas fa-clock"></i>
+                                <span>${formatTime(project.days)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                projectCard.addEventListener('click', () => {
+                    window.location.href = `project.html?id=${project.id}`;
+                });
+
+                projectsGrid.appendChild(projectCard);
+            });
+        });
+        
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchButton.click();
+            }
+        });
+
+        // Set active navigation state based on current page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set 'Videos' as active for demo purposes, should be dynamic based on current page
+            document.querySelectorAll('.nav-item').forEach(item => {
+                if (item.querySelector('i').classList.contains('fa-play')) {
+                    item.classList.add('active');
+                }
+            });
+        });
+
+        // Initialize the page
+        window.addEventListener('load', () => populateProjects('All Projects'));
+    </script>
+</body>
+</html>

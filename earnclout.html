@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Buy CLOUT - HASHCLOUT</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-bg: #0e0b1f;
+            --secondary-bg: #1a162f;
+            --card-bg: #231d3f;
+            --primary-purple: #a74dfc;
+            --secondary-purple: #7928ca;
+            --accent-red: #ff3d57;
+            --accent-blue: #4d79ff;
+            --text-color: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --success-color: #4ade80;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            min-height: 100vh;
+            position: relative;
+            padding-bottom: 40px;
+            background-image: radial-gradient(circle at top, rgba(167, 77, 252, 0.1) 0%, rgba(14, 11, 31, 0) 70%);
+        }
+
+        /* Logo Header */
+        .logo-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(14, 11, 31, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: linear-gradient(to right, #ffffff, #a74dfc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo span {
+            background: linear-gradient(to right, #ff3d57, #ff9966);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        /* Top Navigation Bar */
+        .top-nav {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            background: rgba(14, 11, 31, 0.9);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 20px;
+            z-index: 90;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .nav-item.active, 
+        .nav-item:hover {
+            color: white;
+        }
+
+        .nav-item i {
+            margin-right: 6px;
+            font-size: 1rem;
+        }
+
+        .nav-item.active i {
+            color: var(--primary-purple);
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 130px 20px 40px;
+        }
+
+        /* Page Title */
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-title i {
+            color: var(--primary-purple);
+        }
+
+        /* How To Card */
+        .howto-card {
+            background-color: var(--card-bg);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: var(--primary-purple);
+        }
+
+        .section-description {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* Steps */
+        .steps-container {
+            margin-bottom: 20px;
+        }
+
+        .step {
+            display: flex;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .step:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-number {
+            background-color: var(--primary-purple);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 700;
+            margin-right: 15px;
+            flex-shrink: 0;
+            z-index: 2;
+        }
+
+        .step-content {
+            flex: 1;
+            padding-bottom: 10px;
+        }
+
+        .step-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .step-description {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .token-id {
+            font-family: monospace;
+            padding: 5px 10px;
+            background-color: var(--secondary-bg);
+            border-radius: 4px;
+            display: inline-block;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 10px 0;
+        }
+
+        /* Benefits */
+        .benefits {
+            margin-top: 20px;
+        }
+
+        .benefit {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 15px;
+            background-color: rgba(167, 77, 252, 0.08);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .benefit:last-child {
+            margin-bottom: 0;
+        }
+
+        .benefit-icon {
+            color: var(--primary-purple);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+
+        .benefit-content {
+            flex: 1;
+        }
+
+        .benefit-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 1.05rem;
+        }
+
+        .benefit-description {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* Call to action */
+        .cta-section {
+            text-align: center;
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, rgba(167, 77, 252, 0.15), rgba(121, 40, 202, 0.15));
+            border-radius: 15px;
+            border: 1px solid rgba(167, 77, 252, 0.3);
+        }
+
+        .cta-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .cta-description {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-purple);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-purple);
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 992px) {
+            .nav-item span {
+                display: none;
+            }
+            
+            .nav-item i {
+                margin-right: 0;
+                font-size: 1.2rem;
+            }
+            
+            .nav-menu {
+                gap: 25px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .step {
+                flex-direction: column;
+            }
+            
+            .step-number {
+                margin-bottom: 10px;
+            }
+            
+            .benefit {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Logo Header -->
+    <header class="logo-header">
+        <div class="logo">HASH<span>CLOUT</span></div>
+    </header>
+
+    <!-- Top Navigation -->
+    <div class="top-nav">
+        <div class="nav-menu">
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="video-view.html" class="nav-item">
+                <i class="fas fa-play"></i>
+                <span>Videos</span>
+            </a>
+            <a href="leaderboard.html" class="nav-item">
+                <i class="fas fa-trophy"></i>
+                <span>Leaderboard</span>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <h1 class="page-title">
+            <i class="fas fa-coins"></i> How to Buy CLOUT Tokens
+        </h1>
+
+        <!-- How to Buy Section -->
+        <div class="howto-card">
+            <h2 class="section-title">
+                <i class="fas fa-shopping-cart"></i> Buying CLOUT Tokens
+            </h2>
+            <p class="section-description">
+                CLOUT tokens are the native cryptocurrency of the HashClout platform. Follow these simple steps to buy CLOUT tokens using HBAR.
+            </p>
+
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Download HashPack Wallet</div>
+                        <p class="step-description">
+                            First, download the HashPack wallet browser extension or mobile app if you don't already have it. HashPack is a secure wallet for the Hedera ecosystem.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Associate the CLOUT Token</div>
+                        <p class="step-description">
+                            Open your HashPack wallet and associate the CLOUT token using its token ID:
+                        </p>
+                        <div class="token-id">0.0.4903185</div>
+                        <p class="step-description">
+                            To associate a token, go to the "Tokens" tab in your wallet, click "Associate Token," and enter the token ID.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Swap HBAR for CLOUT</div>
+                        <p class="step-description">
+                            After associating the token, you can swap your HBAR for CLOUT tokens through a decentralized exchange like HeliSwap or Saucerswap that lists the CLOUT/HBAR pair.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <div class="step-title">Connect Your Wallet to HashClout</div>
+                        <p class="step-description">
+                            After purchasing CLOUT tokens, connect your HashPack wallet to the HashClout platform to enjoy the benefits of holding CLOUT.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Earning CLOUT Section -->
+        <div class="howto-card">
+            <h2 class="section-title">
+                <i class="fas fa-star"></i> Earning CLOUT Tokens
+            </h2>
+            <p class="section-description">
+                In addition to buying CLOUT tokens, you can earn them by actively participating in the HashClout ecosystem.
+            </p>
+
+            <div class="benefits">
+                <div class="benefit">
+                    <i class="fas fa-upload benefit-icon"></i>
+                    <div class="benefit-content">
+                        <div class="benefit-title">Post Quality Projects</div>
+                        <p class="benefit-description">
+                            Create and share high-quality projects on HashClout. Projects that receive significant engagement and likes will earn CLOUT tokens as rewards.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="benefit">
+                    <i class="fas fa-heart benefit-icon"></i>
+                    <div class="benefit-content">
+                        <div class="benefit-title">Generate Engagement</div>
+                        <p class="benefit-description">
+                            The more likes, comments, and shares your content receives, the more CLOUT you'll earn. Focus on creating valuable content that resonates with the community.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="benefit">
+                    <i class="fas fa-users benefit-icon"></i>
+                    <div class="benefit-content">
+                        <div class="benefit-title">Community Participation</div>
+                        <p class="benefit-description">
+                            Actively participating in discussions, providing feedback, and engaging with other projects can also earn you CLOUT tokens through community rewards.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Benefits of CLOUT Section -->
+        <div class="howto-card">
+            <h2 class="section-title">
+                <i class="fas fa-rocket"></i> Benefits of Holding CLOUT
+            </h2>
+            <p class="section-description">
+                CLOUT tokens provide various benefits that enhance your experience on the HashClout platform.
+            </p>
+
+            <div class="benefits">
+                <div class="benefit">
+                    <i class="fas fa-chart-line benefit-icon"></i>
+                    <div class="benefit-content">
+                        <div class="benefit-title">Leaderboard Ranking</div>
+                        <p class="benefit-description">
+                            Holding CLOUT tokens boosts your project's position on the leaderboard. The more CLOUT you hold, the higher your project moves up the rankings.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="benefit">
+                    <i class="fas fa-eye benefit-icon"></i>
+                    <div class="benefit-content">
+                        <div class="benefit-title">Increased Visibility</div>
+                        <p class="benefit-description">
+                            Higher leaderboard positions mean more visibility for your projects, increasing the chances of engagement, partnerships, and user adoption.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="benefit">
+                    <i class="fas fa-lock benefit-icon"></i>
+                    <div class="benefit-content">
+                        <div class="benefit-title">Platform Governance</div>
+                        <p class="benefit-description">
+                            CLOUT holders can participate in platform governance decisions, voting on new features, and helping shape the future direction of HashClout.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="cta-section">
+            <h2 class="cta-title">Ready to Boost Your Project?</h2>
+            <p class="cta-description">
+                Get CLOUT tokens today and increase your project's visibility on the HashClout platform. Start climbing the leaderboard and connect with a wider audience!
+            </p>
+            <button class="btn btn-primary">
+                <i class="fas fa-rocket"></i>
+                Get Started
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get Started Button
+            const getStartedBtn = document.querySelector('.btn-primary');
+            getStartedBtn.addEventListener('click', function() {
+                // In a real app, this would redirect to a tutorial or HashPack integration
+                alert('This would redirect to HashPack wallet in a real implementation.');
+            });
+        });
+    </script>
+</body>
+</html>

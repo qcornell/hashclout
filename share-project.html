@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Your Project - HASHCLOUT</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-bg: #0e0b1f;
+            --secondary-bg: #1a162f;
+            --primary-purple: #a74dfc;
+            --secondary-purple: #7928ca;
+            --accent-red: #ff3d57;
+            --accent-blue: #4d79ff;
+            --accent-pink: #ff66c4;
+            --accent-orange: #ff9966;
+            --accent-green: #2dd4bf;
+            --gradient-button: linear-gradient(135deg, #f13939, #ff9966);
+            --gradient-primary: linear-gradient(135deg, #5643cc, #742ddd, #ff66c4, #ff9966);
+            --text-color: #ffffff;
+            --gold: #FFD700;
+            --silver: #C0C0C0;
+            --bronze: #CD7F32;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            min-height: 100vh;
+            position: relative;
+            max-width: 1920px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        /* Header styles */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            position: relative;
+            z-index: 10;
+            width: 100%;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: linear-gradient(to right, #ffffff, #a74dfc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo span {
+            background: linear-gradient(to right, #ff3d57, #ff9966);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 25px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .connect-wallet-button {
+            background: rgba(167, 77, 252, 0.1);
+            border: 1px solid rgba(167, 77, 252, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .connect-wallet-button:hover {
+            background: rgba(167, 77, 252, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .connect-wallet-button i {
+            color: var(--primary-purple);
+        }
+
+        /* Main content */
+        .page-content {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .page-title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .page-title h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .page-title h1 span {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .page-title p {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Project submission section */
+        .submission-container {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 30px;
+            position: relative;
+        }
+
+        /* Video section */
+        .video-section {
+            flex: 1;
+            background: rgba(26, 22, 47, 0.5);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .video-section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            align-self: flex-start;
+            width: 100%;
+        }
+
+        .video-section-title i {
+            color: var(--accent-red);
+        }
+
+        .video-section-subtitle {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 30px;
+            line-height: 1.5;
+            align-self: flex-start;
+            width: 100%;
+        }
+
+        /* Vertical video preview */
+        .video-preview-container {
+            width: 56%;
+            max-width: 315px;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .video-preview {
+            width: 100%;
+            aspect-ratio: 9/16;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .video-preview-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            padding: 20px;
+        }
+
+        .video-preview-placeholder i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: var(--primary-purple);
+        }
+
+        .video-preview-placeholder p {
+            font-size: 0.9rem;
+            max-width: 200px;
+            line-height: 1.4;
+        }
+
+        .video-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .aspect-ratio-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            z-index: 2;
+        }
+
+        .camera-flip-button {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .camera-flip-button:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .video-timer {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--accent-red);
+        }
+
+        .video-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .video-control-button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .record-button {
+            background: var(--gradient-button);
+        }
+
+        .record-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(241, 57, 57, 0.2);
+        }
+
+        .play-button {
+            background: rgba(167, 77, 252, 0.2);
+            border: 1px solid rgba(167, 77, 252, 0.3);
+        }
+
+        .play-button:hover {
+            background: rgba(167, 77, 252, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .video-optional-note {
+            background: rgba(167, 77, 252, 0.1);
+            border: 1px solid rgba(167, 77, 252, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .video-optional-note i {
+            color: var(--primary-purple);
+            font-size: 1.2rem;
+        }
+
+        .video-instructions {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.5;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 20px;
+            margin-top: auto;
+            width: 100%;
+        }
+
+        .video-instructions ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .video-instructions li {
+            margin-bottom: 8px;
+        }
+
+        /* Form section */
+        .form-section {
+            width: 400px;
+            background: rgba(26, 22, 47, 0.5);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-section-title i {
+            color: var(--primary-purple);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 15px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 0 2px rgba(167, 77, 252, 0.2);
+        }
+
+        .form-textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 15px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 0 2px rgba(167, 77, 252, 0.2);
+        }
+
+        .logo-upload {
+            width: 100%;
+            position: relative;
+        }
+
+        .logo-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 10px;
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+        }
+
+        .logo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .logo-preview i {
+            font-size: 2rem;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .logo-upload-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(167, 77, 252, 0.2);
+            border: 1px solid rgba(167, 77, 252, 0.3);
+            border-radius: 8px;
+            padding: 8px 15px;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .logo-upload-label:hover {
+            background: rgba(167, 77, 252, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .logo-upload-label i {
+            color: var(--primary-purple);
+        }
+
+        .logo-upload-input {
+            display: none;
+        }
+
+        .form-help-text {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+        }
+
+        .submit-button {
+            background: var(--gradient-button);
+            border: none;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .submit-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(241, 57, 57, 0.2);
+        }
+
+        .form-notification {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* Project types selector */
+        .project-types {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .project-type-checkbox {
+            display: none;
+        }
+
+        .project-type-label {
+            display: inline-flex;
+            padding: 6px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .project-type-label:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .project-type-checkbox:checked + .project-type-label {
+            background: rgba(167, 77, 252, 0.2);
+            border-color: rgba(167, 77, 252, 0.4);
+            color: var(--primary-purple);
+        }
+
+        /* Background shapes */
+        .bg-shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.2;
+            z-index: 0;
+        }
+
+        .shape-1 {
+            top: -200px;
+            left: -200px;
+            width: 600px;
+            height: 600px;
+            background: var(--secondary-purple);
+        }
+
+        .shape-2 {
+            bottom: -200px;
+            right: -200px;
+            width: 500px;
+            height: 500px;
+            background: var(--accent-red);
+        }
+
+        .shape-3 {
+            top: 20%;
+            right: 20%;
+            width: 300px;
+            height: 300px;
+            background: var(--accent-blue);
+        }
+
+        /* Loading indicator */
+        .loading-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(14, 11, 31, 0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-purple);
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: white;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Success modal */
+        .success-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(14, 11, 31, 0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: rgba(26, 22, 47, 0.9);
+            border-radius: 16px;
+            border: 1px solid rgba(167, 77, 252, 0.3);
+            padding: 40px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            color: var(--accent-green);
+            margin-bottom: 20px;
+        }
+
+        .success-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .success-message {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .success-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .success-button {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .primary-success-button {
+            background: var(--gradient-button);
+            border: none;
+            color: white;
+        }
+
+        .primary-success-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(241, 57, 57, 0.2);
+        }
+
+        .secondary-success-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .secondary-success-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-3px);
+        }
+
+        /* Footer */
+        footer {
+            background: rgba(10, 8, 20, 0.8);
+            padding: 30px 20px;
+            position: relative;
+            z-index: 2;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: 60px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: linear-gradient(to right, #ffffff, #a74dfc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .footer-logo span {
+            background: linear-gradient(to right, #ff3d57, #ff9966);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-link {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .footer-link:hover {
+            color: white;
+        }
+
+        /* Media queries */
+        @media (max-width: 1024px) {
+            .submission-container {
+                flex-direction: column;
+            }
+
+            .form-section {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-title h1 {
+                font-size: 2rem;
+            }
+
+            .page-title p {
+                font-size: 1rem;
+            }
+
+            .video-section, .form-section {
+                padding: 20px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Background shapes -->
+        <div class="bg-shape shape-1"></div>
+        <div class="bg-shape shape-2"></div>
+        <div class="bg-shape shape-3"></div>
+
+        <!-- Header -->
+        <header>
+            <div class="logo">HASH<span>CLOUT</span></div>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="projects.html" class="nav-link">Projects</a>
+                <a href="chat.html" class="nav-link">Live Chat</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            </div>
+            <button class="connect-wallet-button">
+                <i class="fa-solid fa-wallet"></i>
+                Connected
+            </button>
+        </header>
+
+        <!-- Main content -->
+        <main class="page-content">
+            <div class="page-title">
+                <h1>Post Your <span>Project</span></h1>
+                <p>Share your innovative Hedera project with the community and start gaining clout.</p>
+            </div>
+
+            <div class="submission-container">
+                <!-- Video section -->
+                <div class="video-section">
+                    <h2 class="video-section-title">
+                        <i class="fas fa-video"></i>
+                        Project Video Presentation
+                    </h2>
+                    <p class="video-section-subtitle">
+                        Record a brief 1-minute video introducing your project to the Hedera community.
+                    </p>
+
+                    <div class="video-preview-container">
+                        <div class="video-preview">
+                            <div class="aspect-ratio-indicator">9:16</div>
+                            <button class="camera-flip-button" id="flip-camera">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <div class="video-preview-placeholder">
+                                <i class="fas fa-film"></i>
+                                <p>Record a vertical video (9:16) of your project</p>
+                            </div>
+                            <video id="project-video" controls></video>
+                        </div>
+                    </div>
+
+                    <div class="video-timer" id="timer">01:00</div>
+
+                    <div class="video-controls">
+                        <button class="video-control-button record-button" id="record-button">
+                            <i class="fas fa-circle"></i>
+                            Start Recording
+                        </button>
+                        <button class="video-control-button play-button" id="play-button" disabled>
+                            <i class="fas fa-play"></i>
+                            Play Video
+                        </button>
+                    </div>
+
+                    <div class="video-optional-note">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Video is optional. You can still submit your project without recording a video.</span>
+                    </div>
+
+                    <div class="video-instructions">
+                        <strong>Tips for a great project video:</strong>
+                        <ul>
+                            <li>Use portrait/vertical orientation for optimal mobile viewing</li>
+                            <li>Clearly explain what your project does in the first 15 seconds</li>
+                            <li>Highlight the key features and benefits for users</li>
+                            <li>Mention how your project utilizes the Hedera network</li>
+                            <li>Conclude with a clear call to action</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Form section -->
+                <div class="form-section">
+                    <h2 class="form-section-title">
+                        <i class="fas fa-rocket"></i>
+                        Project Details
+                    </h2>
+
+                    <div class="form-group">
+                        <label class="form-label" for="project-name">Project Name</label>
+                        <input type="text" id="project-name" class="form-input" placeholder="e.g. SaucerSwap" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Project Logo</label>
+                        <div class="logo-upload">
+                            <div class="logo-preview" id="logo-preview">
+                                <i class="fas fa-image"></i>
+                                <img id="logo-image" src="#" alt="Project Logo">
+                            </div>
+                            <label for="logo-upload" class="logo-upload-label">
+                                <i class="fas fa-upload"></i>
+                                Upload Logo
+                            </label>
+                            <input type="file" id="logo-upload" class="logo-upload-input" accept="image/*">
+                            <p class="form-help-text">Recommended: 400x400px, PNG or JPG</p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="project-description">Project Description</label>
+                        <textarea id="project-description" class="form-textarea" placeholder="Describe your project in a few sentences..." required></textarea>
+                        <p class="form-help-text">Maximum 500 characters</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Project Type</label>
+                        <div class="project-types">
+                            <input type="checkbox" id="type-nft" class="project-type-checkbox">
+                            <label for="type-nft" class="project-type-label">NFT</label>
+                            
+                            <input type="checkbox" id="type-token" class="project-type-checkbox">
+                            <label for="type-token" class="project-type-label">Token</label>
+                            
+                            <input type="checkbox" id="type-dapp" class="project-type-checkbox">
+                            <label for="type-dapp" class="project-type-label">dApp</label>
+                            
+                            <input type="checkbox" id="type-dao" class="project-type-checkbox">
+                            <label for="type-dao" class="project-type-label">DAO</label>
+                            
+                            <input type="checkbox" id="type-game" class="project-type-checkbox">
+                            <label for="type-game" class="project-type-label">Game</label>
+                            
+                            <input type="checkbox" id="type-defi" class="project-type-checkbox">
+                            <label for="type-defi" class="project-type-label">DeFi</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="twitter-handle">X/Twitter Account (optional)</label>
+                        <input type="text" id="twitter-handle" class="form-input" placeholder="@yourproject">
+                    </div>
+
+                    <button class="submit-button" id="submit-button">
+                        <i class="fas fa-rocket"></i>
+                        Submit Project
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <div class="footer-content">
+                <div class="footer-logo">HASH<span>CLOUT</span></div>
+                <div class="footer-links">
+                    <a href="#" class="footer-link">Terms</a>
+                    <a href="#" class="footer-link">Privacy</a>
+                    <a href="#" class="footer-link">Contact</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading indicator -->
+    <div class="loading-indicator" id="loading-indicator">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Submitting your project...</p>
+    </div>
+
+    <!-- Success modal -->
+    <div class="success-modal" id="success-modal">
+        <div class="modal-content">
+            <i class="fas fa-check-circle success-icon"></i>
+            <h2 class="success-title">Project Submitted!</h2>
+            <p class="success-message">
+                Your project has been successfully submitted to HASHCLOUT. It will be reviewed and published shortly.
+            </p>
+            <div class="success-buttons">
+                <button class="success-button primary-success-button" id="view-project-button">
+                    View My Project
+                </button>
+                <button class="success-button secondary-success-button" id="back-home-button">
+                    Back to Home
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const videoPreview = document.getElementById('project-video');
+        const videoPlaceholder = document.querySelector('.video-preview-placeholder');
+        const recordButton = document.getElementById('record-button');
+        const playButton = document.getElementById('play-button');
+        const timerElement = document.getElementById('timer');
+        const logoUpload = document.getElementById('logo-upload');
+        const logoPreview = document.getElementById('logo-preview');
+        const logoImage = document.getElementById('logo-image');
+        const submitButton = document.getElementById('submit-button');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const successModal = document.getElementById('success-modal');
+        const viewProjectButton = document.getElementById('view-project-button');
+        const backHomeButton = document.getElementById('back-home-button');
+        const flipCameraButton = document.getElementById('flip-camera');
+
+        // Variables for video recording
+        let mediaRecorder;
+        let recordedChunks = [];
+        let timerInterval;
+        let timeLeft = 60; // 1 minute
+        let isRecording = false;
+        let hasRecordedVideo = false;
+        let facingMode = 'user'; // Default to front camera
+
+        // Format time for timer display
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const secs = (seconds % 60).toString().padStart(2, '0');
+            return `${mins}:${secs}`;
+        }
+
+        // Update timer display
+        function updateTimer() {
+            timeLeft--;
+            timerElement.textContent = formatTime(timeLeft);
+            
+            if (timeLeft <= 10) {
+                timerElement.style.color = 'var(--accent-red)';
+            }
+            
+            if (timeLeft <= 0) {
+                stopRecording();
+            }
+        }
+
+        // Start recording
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: {
+                        facingMode: facingMode,
+                        aspectRatio: 9/16, // Enforce 9:16 aspect ratio
+                        width: { ideal: 1080 },
+                        height: { ideal: 1920 }
+                    }, 
+                    audio: true 
+                });
+                
+                videoPreview.srcObject = stream;
+                videoPreview.style.display = 'block';
+                videoPlaceholder.style.display = 'none';
+                
+                mediaRecorder = new MediaRecorder(stream);
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    videoPreview.srcObject = null;
+                    videoPreview.src = URL.createObjectURL(blob);
+                    recordButton.innerHTML = '<i class="fas fa-redo"></i> Record Again';
+                    playButton.disabled = false;
+                    hasRecordedVideo = true;
+                };
+                
+                timeLeft = 60;
+                timerElement.textContent = formatTime(timeLeft);
+                timerElement.style.color = 'var(--accent-red)';
+                
+                timerInterval = setInterval(updateTimer, 1000);
+                
+                mediaRecorder.start();
+                isRecording = true;
+                recordButton.innerHTML = '<i class="fas fa-stop"></i> Stop Recording';
+                
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                alert('Could not access camera. Please ensure you have granted permission and try again.');
+            }
+        }
+
+        // Stop recording
+        function stopRecording() {
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+            
+            mediaRecorder.stop();
+            clearInterval(timerInterval);
+            
+            videoPreview.srcObject.getTracks().forEach(track => track.stop());
+            isRecording = false;
+        }
+
+        // Flip camera function
+        async function flipCamera() {
+            if (isRecording) return; // Don't allow flipping while recording
+            
+            // Toggle camera facing mode
+            facingMode = facingMode === 'user' ? 'environment' : 'user';
+            
+            // If we're currently showing camera stream, update it
+            if (videoPreview.srcObject) {
+                // Stop current stream
+                videoPreview.srcObject.getTracks().forEach(track => track.stop());
+                
+                try {
+                    // Start new stream with flipped camera
+                    const newStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: {
+                            facingMode: facingMode,
+                            aspectRatio: 9/16,
+                            width: { ideal: 1080 },
+                            height: { ideal: 1920 }
+                        }, 
+                        audio: true 
+                    });
+                    
+                    videoPreview.srcObject = newStream;
+                } catch (error) {
+                    console.error('Error flipping camera:', error);
+                    alert('Could not switch camera. Your device might not support this feature.');
+                    
+                    // Revert back if failed
+                    facingMode = facingMode === 'user' ? 'environment' : 'user';
+                }
+            }
+        }
+
+        // Handle record button click
+        recordButton.addEventListener('click', function() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                recordedChunks = [];
+                startRecording();
+            }
+        });
+
+        // Handle flip camera button click
+        flipCameraButton.addEventListener('click', flipCamera);
+
+        // Handle play button click
+        playButton.addEventListener('click', function() {
+            videoPreview.play();
+        });
+
+        // Handle logo upload
+        logoUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    logoImage.src = e.target.result;
+                    logoImage.style.display = 'block';
+                    logoPreview.querySelector('i').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle form submission
+        submitButton.addEventListener('click', function() {
+            const projectName = document.getElementById('project-name').value;
+            const projectDescription = document.getElementById('project-description').value;
+            
+            if (!projectName || !projectDescription) {
+                alert('Please fill in the project name and description.');
+                return;
+            }
+            
+            // Check if at least one project type is selected
+            const projectTypeCheckboxes = document.querySelectorAll('.project-type-checkbox');
+            let hasSelectedType = false;
+            
+            projectTypeCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    hasSelectedType = true;
+                }
+            });
+            
+            if (!hasSelectedType) {
+                alert('Please select at least one project type.');
+                return;
+            }
+            
+            // Show loading indicator
+            loadingIndicator.style.display = 'flex';
+            
+            // Simulate form submission (would be replaced with actual API call)
+            setTimeout(() => {
+                loadingIndicator.style.display = 'none';
+                successModal.style.display = 'flex';
+            }, 2000);
+        });
+
+        // Handle success modal buttons
+        viewProjectButton.addEventListener('click', function() {
+            // In a real implementation, this would navigate to the newly created project page
+            window.location.href = 'project.html?id=new';
+        });
+
+        backHomeButton.addEventListener('click', function() {
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>

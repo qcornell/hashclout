@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HASHCLOUT - Connect Wallet</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Base styles */
+        :root {
+            --primary-bg: #0e0b1f;
+            --secondary-bg: #1a162f;
+            --primary-purple: #a74dfc;
+            --secondary-purple: #7928ca;
+            --accent-red: #ff3d57;
+            --accent-blue: #4d79ff;
+            --accent-pink: #ff66c4;
+            --accent-orange: #ff9966;
+            --accent-green: #2dd4bf;
+            --gradient-button: linear-gradient(135deg, #f13939, #ff9966);
+            --gradient-primary: linear-gradient(135deg, #5643cc, #742ddd, #ff66c4, #ff9966);
+            --text-color: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Auth Modal Styles */
+        .auth-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 8, 20, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .auth-modal {
+            background: var(--secondary-bg);
+            border-radius: 16px;
+            width: 95%;
+            max-width: 420px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            animation: modalSlideIn 0.4s ease;
+        }
+
+        .auth-modal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            z-index: 1;
+        }
+
+        .auth-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .auth-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .close-modal:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .auth-modal-body {
+            padding: 24px;
+        }
+
+        .auth-description {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+
+        .wallet-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .connect-wallet-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            text-align: left;
+        }
+
+        .connect-wallet-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .connect-wallet-btn.primary {
+            background: rgba(167, 77, 252, 0.1);
+            border: 1px solid rgba(167, 77, 252, 0.3);
+        }
+
+        .connect-wallet-btn.primary:hover {
+            background: rgba(167, 77, 252, 0.15);
+        }
+
+        .wallet-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--primary-purple);
+        }
+
+        .wallet-icon.hashpack {
+            background: #8257F5;
+            color: white;
+        }
+
+        .wallet-details {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .wallet-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--text-color);
+        }
+
+        .wallet-description {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .auth-footer {
+            text-align: center;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 20px;
+        }
+
+        .auth-footer a {
+            color: var(--primary-purple);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .auth-footer a:hover {
+            color: var(--accent-pink);
+            text-decoration: underline;
+        }
+
+        .status-alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .status-alert.info {
+            background: rgba(77, 121, 255, 0.1);
+            border: 1px solid rgba(77, 121, 255, 0.3);
+            color: var(--accent-blue);
+        }
+
+        .status-alert i {
+            margin-top: 3px;
+        }
+
+        /* Loading state */
+        .connecting-state {
+            display: none;
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .connecting-state.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(167, 77, 252, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary-purple);
+            margin: 0 auto 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        .connecting-text {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .connecting-subtext {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Account setup form (For new users) */
+        .account-setup-form {
+            display: none; /* Initially hidden */
+        }
+
+        .account-setup-form.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-control {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 14px;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 6px;
+        }
+
+        .avatar-upload-container {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        .avatar-upload {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: rgba(255, 255, 255, 0.6);
+            background-size: cover;
+            background-position: center;
+        }
+
+        .avatar-upload:hover {
+            border-color: var(--primary-purple);
+            color: var(--primary-purple);
+        }
+
+        .avatar-upload i {
+            font-size: 24px;
+            transition: all 0.2s;
+        }
+
+        .avatar-upload:hover i {
+            transform: scale(1.1);
+        }
+
+        .avatar-upload.has-image i {
+            display: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--gradient-button);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(241, 57, 57, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* File upload styling */
+        .file-upload {
+            display: none;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes modalSlideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Modal Overlay -->
+    <div class="auth-modal-overlay" id="authModalOverlay">
+        <div class="auth-modal">
+            <!-- Step 1: Connect Wallet -->
+            <div id="connectWalletStep">
+                <div class="auth-modal-header">
+                    <h3 class="auth-modal-title">Connect Your Wallet</h3>
+                    <button class="close-modal" onclick="closeAuthModal()">&times;</button>
+                </div>
+                <div class="auth-modal-body">
+                    <p class="auth-description">Connect your wallet to access HASHCLOUT and discover Hedera's top projects.</p>
+                    
+                    <div class="status-alert info">
+                        <i class="fas fa-info-circle"></i>
+                        <div>Your wallet is only used for authentication and doesn't share your private keys.</div>
+                    </div>
+
+                    <div class="wallet-options">
+                        <button class="connect-wallet-btn primary" onclick="connectWallet('hashpack')">
+                            <div class="wallet-icon hashpack">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div class="wallet-details">
+                                <div class="wallet-name">HashPack</div>
+                                <div class="wallet-description">Connect with HashPack wallet</div>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+
+                        <button class="connect-wallet-btn" onclick="connectWallet('blade')">
+                            <div class="wallet-icon">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div class="wallet-details">
+                                <div class="wallet-name">Blade</div>
+                                <div class="wallet-description">Connect with Blade wallet</div>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="auth-footer">
+                        Don't have a wallet? <a href="https://www.hashpack.app/" target="_blank">Download HashPack</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connecting State (Shown while checking wallet) -->
+            <div id="connectingState" class="connecting-state">
+                <div class="spinner"></div>
+                <div class="connecting-text">Connecting to wallet...</div>
+                <div class="connecting-subtext">Please approve the connection request in your wallet</div>
+            </div>
+
+            <!-- Account Setup (Only for new users) -->
+            <div id="accountSetupStep" class="account-setup-form">
+                <div class="auth-modal-header">
+                    <h3 class="auth-modal-title">Complete Your Profile</h3>
+                    <button class="close-modal" onclick="closeAuthModal()">&times;</button>
+                </div>
+                <div class="auth-modal-body">
+                    <p class="auth-description">Welcome to HASHCLOUT! Let's set up your profile.</p>
+                    
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" class="form-control" placeholder="Choose a unique username">
+                        <div class="form-hint">This will be your @handle on the platform</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" class="form-control" placeholder="Enter your email">
+                        <div class="form-hint">We'll never share your email with anyone else</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Profile Picture</label>
+                        <div class="avatar-upload-container">
+                            <div class="avatar-upload" id="avatarUpload">
+                                <i class="fas fa-plus"></i>
+                                <input type="file" id="profileImageUpload" class="file-upload" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="form-hint" style="text-align: center;">Click to upload a profile picture</div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="completeProfile()">
+                        Complete Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Close the modal
+        function closeAuthModal() {
+            document.getElementById('authModalOverlay').style.display = 'none';
+        }
+
+        // Handle wallet connection
+        function connectWallet(walletType) {
+            // Show connecting state
+            document.getElementById('connectWalletStep').style.display = 'none';
+            document.getElementById('connectingState').classList.add('active');
+            
+            // In a real implementation, you would:
+            // 1. Connect to the selected wallet using their SDK
+            // 2. Check if the user already exists in your database
+            // 3. Show the account setup step only for new users, or redirect to dashboard for existing users
+            
+            setTimeout(() => {
+                document.getElementById('connectingState').classList.remove('active');
+                
+                // Simulate checking if user exists
+                const isNewUser = Math.random() > 0.5; // Randomly determine if new user for demo
+                
+                if (isNewUser) {
+                    // For new users, show the profile setup step
+                    document.getElementById('accountSetupStep').style.display = 'block';
+                } else {
+                    // For existing users, close the modal and redirect/show dashboard
+                    closeAuthModal();
+                    
+                    // Here you would redirect to dashboard or refresh the current page
+                    alert("Welcome back! You're now connected."); // Replace with redirect in real implementation
+                }
+            }, 1500); // Simulate connection delay
+        }
+
+        // Handle profile completion for new users
+        function completeProfile() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            
+            if (!username || !email) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            // In a real implementation, you would:
+            // 1. Validate the username (check availability, format, etc.)
+            // 2. Validate the email format
+            // 3. Upload the profile image if provided
+            // 4. Create the user record in your database
+            // 5. Redirect to dashboard
+            
+            closeAuthModal();
+            alert("Profile created successfully! Welcome to HASHCLOUT."); // Replace with redirect in real implementation
+        }
+
+        // Handle custom avatar upload
+        document.addEventListener('DOMContentLoaded', function() {
+            const avatarUpload = document.getElementById('avatarUpload');
+            const fileInput = document.getElementById('profileImageUpload');
+            
+            avatarUpload.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        avatarUpload.style.backgroundImage = `url(${e.target.result})`;
+                        avatarUpload.classList.add('has-image');
+                    }
+                    
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        });
+
+        // Close modal if clicking outside
+        document.getElementById('authModalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAuthModal();
+            }
+        });
+    </script>
+</body>
+</html>
