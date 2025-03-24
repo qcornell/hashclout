@@ -116,55 +116,53 @@
             background: rgba(255, 255, 255, 0.05);
         }
 
-        /* Enhanced connect wallet button */
         .connect-wallet-button {
-            background: linear-gradient(135deg, rgba(167, 77, 252, 0.2), rgba(121, 40, 202, 0.3));
-            border: 1px solid rgba(167, 77, 252, 0.4);
+            background: rgba(167, 77, 252, 0.1);
+            border: 1px solid rgba(167, 77, 252, 0.3);
             color: white;
-            padding: 10px 18px;
-            border-radius: 12px;
-            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s;
             display: flex;
             align-items: center;
-            gap: 10px;
-            box-shadow: 0 4px 12px rgba(167, 77, 252, 0.15);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .connect-wallet-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, rgba(167, 77, 252, 0), rgba(167, 77, 252, 0.2), rgba(167, 77, 252, 0));
-            transform: translateX(-100%);
-            transition: transform 0.6s;
+            gap: 8px;
         }
 
         .connect-wallet-button:hover {
-            background: linear-gradient(135deg, rgba(167, 77, 252, 0.3), rgba(121, 40, 202, 0.4));
-            transform: translateY(-3px);
-            box-shadow: 0 6px 15px rgba(167, 77, 252, 0.25);
-        }
-
-        .connect-wallet-button:hover::before {
-            transform: translateX(100%);
+            background: rgba(167, 77, 252, 0.2);
+            transform: translateY(-2px);
         }
 
         .connect-wallet-button i {
             color: var(--primary-purple);
-            font-size: 16px;
-            transition: transform 0.3s;
         }
 
-        .connect-wallet-button:hover i {
-            transform: scale(1.1);
+        /* Login Button Styles */
+        .login-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .login-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .login-button i {
+            color: var(--accent-blue);
         }
 
         /* User menu dropdown */
@@ -607,6 +605,64 @@
             color: var(--bronze);
         }
 
+        /* Trending ticker */
+        .trending-ticker {
+            width: 100%;
+            background: rgba(14, 11, 31, 0.7);
+            padding: 10px 0;
+            overflow: hidden;
+            position: relative;
+            z-index: 3;
+            margin-top: 60px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .ticker-container {
+            display: flex;
+            animation: tickerScroll 30s linear infinite;
+            white-space: nowrap;
+        }
+
+        .ticker-item {
+            display: flex;
+            align-items: center;
+            margin-right: 40px;
+            padding: 8px 15px;
+            background: rgba(167, 77, 252, 0.07);
+            border-radius: 30px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .ticker-item:hover {
+            background: rgba(167, 77, 252, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .ticker-item img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 10px;
+            object-fit: cover;
+        }
+
+        .ticker-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .ticker-price {
+            font-size: 14px;
+            color: var(--accent-green);
+        }
+
+        .price-down {
+            color: var(--accent-red);
+        }
+
         /* Footer */
         footer {
             background: rgba(10, 8, 20, 0.8);
@@ -685,6 +741,11 @@
             0% { transform: translateY(0); }
             50% { transform: translateY(-5px); }
             100% { transform: translateY(0); }
+        }
+
+        @keyframes tickerScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
 
         /* Mobile nav menu */
@@ -1164,26 +1225,13 @@
                 text-align: center;
             }
             
-            /* Mobile connect wallet button */
-            .connect-wallet-button {
-                font-size: 13px;
-                padding: 8px 14px;
+            header div {
+                gap: 8px;
             }
             
-            /* Adjust header padding and spacing for mobile */
-            header {
-                padding: 20px 4%;
-                justify-content: space-between;
-            }
-            
-            /* Add more space between logo and connect button on mobile */
-            .logo {
-                margin-right: 10px;
-            }
-            
-            /* Ensure the connect wallet button has appropriate size on mobile */
-            .connect-wallet-button {
-                min-width: 120px; /* Ensure minimum width */
+            .login-button, .connect-wallet-button {
+                font-size: 12px;
+                padding: 6px 10px;
             }
             
             /* Show mobile menu on small screens */
@@ -1248,7 +1296,13 @@
             </div>
             
             <div style="display: flex; align-items: center; gap: 12px;">
-                <!-- Connect Wallet Button (enhanced) -->
+                <!-- Login/Signup Button -->
+                <button class="login-button" onclick="openAuthModal('login')">
+                    <i class="fa-solid fa-user"></i>
+                    Sign up/Login
+                </button>
+                
+                <!-- Connect Wallet Button -->
                 <button class="connect-wallet-button" onclick="openWalletConnectModal()">
                     <i class="fa-solid fa-wallet"></i>
                     Connect Wallet
@@ -1398,6 +1452,64 @@
                 </div>
             </div>
         </section>
+
+        <!-- Trending ticker -->
+        <div class="trending-ticker">
+            <div class="ticker-container">
+                <!-- Ticker items - duplicated for smooth loop -->
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23ff3d57'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHB%3C/text%3E%3C/svg%3E" alt="HBAR">
+                    <span class="ticker-name">HBAR</span>
+                    <span class="ticker-price">$0.087 +2.4%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23a74dfc'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3ESC%3C/text%3E%3C/svg%3E" alt="SaucerSwap">
+                    <span class="ticker-name">SAUCE</span>
+                    <span class="ticker-price">$0.0032 +5.1%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%234d79ff'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHD%3C/text%3E%3C/svg%3E" alt="HeadStarter">
+                    <span class="ticker-name">HEAD</span>
+                    <span class="ticker-price">$0.0014 -1.2%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23ff9966'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHX%3C/text%3E%3C/svg%3E" alt="HEX">
+                    <span class="ticker-name">HEX</span>
+                    <span class="ticker-price">$0.0065 +0.8%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%232dd4bf'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHS%3C/text%3E%3C/svg%3E" alt="HashScan">
+                    <span class="ticker-name">HSCAN</span>
+                    <span class="ticker-price">$0.0021 -0.5%</span>
+                </div>
+                <!-- Duplicate for seamless looping -->
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23ff3d57'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHB%3C/text%3E%3C/svg%3E" alt="HBAR">
+                    <span class="ticker-name">HBAR</span>
+                    <span class="ticker-price">$0.087 +2.4%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23a74dfc'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3ESC%3C/text%3E%3C/svg%3E" alt="SaucerSwap">
+                    <span class="ticker-name">SAUCE</span>
+                    <span class="ticker-price">$0.0032 +5.1%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%234d79ff'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHD%3C/text%3E%3C/svg%3E" alt="HeadStarter">
+                    <span class="ticker-name">HEAD</span>
+                    <span class="ticker-price">$0.0014 -1.2%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23ff9966'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHX%3C/text%3E%3C/svg%3E" alt="HEX">
+                    <span class="ticker-name">HEX</span>
+                    <span class="ticker-price">$0.0065 +0.8%</span>
+                </div>
+                <div class="ticker-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%232dd4bf'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EHS%3C/text%3E%3C/svg%3E" alt="HashScan">
+                    <span class="ticker-name">HSCAN</span>
+                    <span class="ticker-price">$0.0021 -0.5%</span>
+                </div>
+            </div>
+        </div>
 
         <!-- Footer -->
         <footer>

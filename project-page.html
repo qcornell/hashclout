@@ -27,6 +27,8 @@
             --silver: #6ebbff;
             --bronze: #a74dfc;
             --like-green: #4ade80;
+            --header-bg: #0e0b1f;
+            --nav-bg: #12101f;
         }
 
         * {
@@ -46,15 +48,18 @@
             background-image: radial-gradient(circle at top, rgba(167, 77, 252, 0.1) 0%, rgba(14, 11, 31, 0) 70%);
         }
 
-        /* Logo Header */
-        .logo-header {
+        /* Header and Navigation Wrapper - Fixed to prevent gaps */
+        .header-nav-container {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             z-index: 100;
-            background: rgba(14, 11, 31, 0.95);
-            backdrop-filter: blur(10px);
+        }
+
+        /* Logo Header */
+        .logo-header {
+            background: var(--header-bg);
             padding: 15px 20px;
             display: flex;
             justify-content: center;
@@ -63,44 +68,33 @@
         }
 
         .logo {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            background: linear-gradient(to right, #ffffff, #a74dfc);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            position: relative;
             display: flex;
             align-items: center;
+            text-decoration: none;
         }
 
-        .logo span {
-            background: linear-gradient(to right, #ff3d57, #ff9966);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
+        .logo img {
+            height: 40px;
+            width: auto;
+            object-fit: contain;
         }
 
         /* Top Navigation Bar */
         .top-nav {
-            position: fixed;
-            top: 60px;
-            left: 0;
-            right: 0;
-            background: rgba(14, 11, 31, 0.9);
-            backdrop-filter: blur(10px);
+            background: var(--nav-bg);
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             padding: 10px 20px;
-            z-index: 90;
             border-bottom: 1px solid var(--border-color);
         }
 
         .nav-menu {
             display: flex;
-            gap: 20px;
+            gap: 40px;
+            max-width: 800px;
+            width: 100%;
+            justify-content: center;
         }
 
         .nav-item {
@@ -109,7 +103,7 @@
             color: var(--text-secondary);
             text-decoration: none;
             transition: color 0.3s;
-            font-size: 0.9rem;
+            font-size: 1rem;
             font-weight: 500;
         }
 
@@ -119,54 +113,12 @@
         }
 
         .nav-item i {
-            margin-right: 6px;
-            font-size: 1rem;
+            margin-right: 8px;
+            font-size: 1.2rem;
         }
 
         .nav-item.active i {
-            color: var(--primary-purple);
-        }
-
-        /* Search Area */
-        .search-area {
-            max-width: 400px;
-            flex: 1;
-            margin: 0 20px;
-        }
-
-        .search-bar {
-            display: flex;
-            background-color: var(--secondary-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            overflow: hidden;
-        }
-
-        .search-input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            padding: 8px 12px;
-            color: var(--text-color);
-            font-size: 0.9rem;
-            outline: none;
-        }
-
-        .search-input::placeholder {
-            color: var(--text-secondary);
-        }
-
-        .search-button {
-            background-color: var(--primary-purple);
             color: white;
-            border: none;
-            padding: 0 15px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .search-button:hover {
-            background-color: var(--secondary-purple);
         }
 
         /* Main Container */
@@ -782,10 +734,6 @@
                 gap: 15px;
             }
             
-            .search-area {
-                max-width: none;
-            }
-            
             .project-header {
                 flex-direction: column;
                 align-items: center;
@@ -853,43 +801,51 @@
                 align-items: flex-start;
                 gap: 10px;
             }
+            
+            /* Additional mobile fixes */
+            .logo-header {
+                padding: 10px 15px;
+            }
+            
+            .top-nav {
+                padding: 8px 10px;
+            }
+            
+            .logo img {
+                height: 30px; /* Slightly smaller on mobile */
+            }
         }
     </style>
 </head>
 <body>
-  <!-- Logo Header -->
-<header class="logo-header">
-    <a href="index.html" class="logo">
-        <img src="images/logo.png" alt="HASHCLOUT Logo" style="height: 40px; width: auto;">
-    </a>
-</header>
-    <!-- Top Navigation -->
-    <div class="top-nav">
-        <div class="nav-menu">
-            <a href="index.html" class="nav-item">
-                <i class="fas fa-home"></i>
-                <span>Home</span>
-            </a>
-            <a href="projects.html" class="nav-item">
-                <i class="fas fa-play"></i>
-                <span>Videos</span>
-            </a>
-            <a href="leaderboard.html" class="nav-item">
-                <i class="fas fa-trophy"></i>
-                <span>Leaderboard</span>
-            </a>
-            <a href="profile.html" class="nav-item">
-                <i class="fas fa-user"></i>
-                <span>Profile</span>
+    <!-- Combined header and navigation container to fix gaps -->
+    <div class="header-nav-container">
+        <!-- Logo Header -->
+        <div class="logo-header">
+            <a href="index.html" class="logo">
+                <img src="images/logo.png" alt="HASHCLOUT Logo">
             </a>
         </div>
-        
-        <div class="search-area">
-            <div class="search-bar">
-                <input type="text" class="search-input" placeholder="Search projects, videos, creators...">
-                <button class="search-button">
-                    <i class="fas fa-search"></i>
-                </button>
+
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="projects.html" class="nav-item">
+                    <i class="fas fa-play"></i>
+                    <span>Videos</span>
+                </a>
+                <a href="leaderboard.html" class="nav-item">
+                    <i class="fas fa-trophy"></i>
+                    <span>Leaderboard</span>
+                </a>
+                <a href="profile.html" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </a>
             </div>
         </div>
     </div>
