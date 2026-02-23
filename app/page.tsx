@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Play, Eye, User, Flame, Trophy, Send, Clock } from "lucide-react";
+import { Play, Eye, EyeOff, User, Flame, Trophy, Send, Clock, Video, VideoOff } from "lucide-react";
 import Image from "next/image";
 import MatchmakingQueue from "@/components/MatchmakingQueue";
 import { useAuth } from "@/lib/auth-context";
@@ -1374,19 +1374,21 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* CAMERA TOGGLE — icon only */}
+                {/* CAMERA TOGGLE — icon only, desktop: bottom-right above exit, mobile: top-right */}
                 {isActivePhase && (
-                  <button onClick={(e) => { e.stopPropagation(); setCameraVisible(!cameraVisible); }} style={{
-                    position: "absolute", top: 12, right: 12, zIndex: 22,
+                  <button onClick={(e) => { e.stopPropagation(); setCameraVisible(!cameraVisible); }} className="camera-toggle-btn" style={{
+                    position: "absolute", zIndex: 22,
                     width: 36, height: 36, borderRadius: 999,
                     background: cameraVisible ? "rgba(34,197,94,.15)" : "rgba(255,255,255,.10)",
                     border: `1px solid ${cameraVisible ? "rgba(34,197,94,.25)" : "rgba(255,255,255,.12)"}`,
                     color: cameraVisible ? "#22c55e" : "rgba(255,255,255,.45)",
-                    fontSize: 16, cursor: "pointer",
+                    cursor: "pointer",
                     display: "grid", placeItems: "center",
                     transition: "all .2s",
+                    /* Default: desktop position — bottom right above exit */
+                    bottom: 56, right: 16, top: "auto",
                   }}>
-                    {cameraVisible ? "👁" : "👁‍🗨"}
+                    {cameraVisible ? <Video size={16} /> : <VideoOff size={16} />}
                   </button>
                 )}
 
@@ -1419,18 +1421,15 @@ export default function Home() {
                         <div className="video-comment-wrap">
                           <input type="text" className="video-comment-input" value={commentInput} onChange={e => setCommentInput(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSendVideoComment()} placeholder="Type a comment…" />
                           <button className="btn-send-comment" onClick={handleSendVideoComment}><Send size={14} /></button>
+                          <button onClick={(e) => { e.stopPropagation(); setShowExitConfirm(true); }} style={{
+                            width: 34, height: 34, flexShrink: 0, borderRadius: 10,
+                            background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)",
+                            color: "rgba(255,255,255,.30)", fontSize: 16, cursor: "pointer",
+                            display: "grid", placeItems: "center",
+                          }}>×</button>
                         </div>
                       </>
                     )}
-
-                    {/* Exit/forfeit button */}
-                    <button onClick={(e) => { e.stopPropagation(); setShowExitConfirm(true); }} style={{
-                      position: "absolute", bottom: 16, right: 16,
-                      width: 30, height: 30, borderRadius: 999,
-                      background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.10)",
-                      color: "rgba(255,255,255,.30)", fontSize: 14, cursor: "pointer",
-                      display: "grid", placeItems: "center",
-                    }}>×</button>
                   </div>
                 )}
               </div>
