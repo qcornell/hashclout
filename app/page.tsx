@@ -164,6 +164,7 @@ export default function Home() {
 
   /* ─── video privacy ─── */
   const [cameraVisible, setCameraVisible] = useState(false); // off by default for privacy
+  const [overlaysVisible, setOverlaysVisible] = useState(false); // tap to show secondary overlays
 
   /* ─── custom debate settings (unlocked at 1M clout or 10K followers) ─── */
   const [showCustomize, setShowCustomize] = useState(false);
@@ -295,6 +296,24 @@ export default function Home() {
       setTopicLoading(false);
     });
   }, []);
+
+  /* ═══ MOBILE VIEWPORT FIX ═══ */
+  useEffect(() => {
+    if (gameState !== "debating") return;
+    // Handle mobile keyboard resize via visualViewport
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handler = () => {
+      document.documentElement.style.setProperty("--vvh", `${vv.height}px`);
+      window.scrollTo(0, 0);
+    };
+    vv.addEventListener("resize", handler);
+    handler();
+    return () => {
+      vv.removeEventListener("resize", handler);
+      document.documentElement.style.removeProperty("--vvh");
+    };
+  }, [gameState]);
 
   /* ═══ AMBIENT EFFECTS ═══ */
   useEffect(() => {
@@ -743,6 +762,8 @@ export default function Home() {
     }
 
     setGameState("debating");
+    // Reset scroll to top on debate start
+    window.scrollTo(0, 0);
   }, [opponent, matchId]);
 
   const handleMatchmakingCancel = useCallback(() => {
@@ -901,7 +922,7 @@ export default function Home() {
     setCommentInput(""); setViewerCount(35); setUserSpeakTime(0); setSentimentPct(52);
     setEmojiCounts({ "👍": 0, "👎": 0, "🔥": 0, "💀": 0, "😂": 0, "🤯": 0 });
     setMatchId(null); setEloDelta(0); setQueueId(null); setOpponent(null);
-    setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(false);
+    setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(false); setOverlaysVisible(false);
     setShowCustomize(false); setCustomRapidRounds(1); setCustomRoundTime(60);
     queueUnsubRef.current?.(); queueUnsubRef.current = null;
     msgUnsubRef.current?.(); msgUnsubRef.current = null;
@@ -1215,7 +1236,7 @@ export default function Home() {
           {/* ─── VIDEO DEBATE — IMMERSIVE ─── */}
           {gameState === "debating" && debateFormat === "video" && (
             <div className="video-debate">
-              <div className={`video-stage ${stageClass}`}>
+              <div className={`video-stage ${stageClass} ${overlaysVisible ? "video-overlays-visible" : ""}`} onClick={() => setOverlaysVisible(p => !p)}>
 
                 {/* Self video feed — hidden by default for privacy */}
                 <video
