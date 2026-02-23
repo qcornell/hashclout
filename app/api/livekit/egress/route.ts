@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { EgressClient } from "livekit-server-sdk";
+import { EgressClient, SegmentedFileOutput } from "livekit-server-sdk";
 
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
@@ -7,7 +7,6 @@ const LIVEKIT_HOST = process.env.LIVEKIT_HOST || "";
 
 /**
  * Start HLS egress for a LiveKit room.
- * Returns the egress ID for spectators.
  */
 export async function POST(req: NextRequest) {
   if (!API_KEY || !API_SECRET || !LIVEKIT_HOST) {
@@ -23,21 +22,16 @@ export async function POST(req: NextRequest) {
 
     const egressClient = new EgressClient(LIVEKIT_HOST, API_KEY, API_SECRET);
 
-    // Start room composite egress with HLS segments
+    const output = new SegmentedFileOutput({
+      filenamePrefix: `hashclout/${matchId}/stream`,
+      playlistName: "index.m3u8",
+      livePlaylistName: "live.m3u8",
+    });
+
     const egressInfo = await egressClient.startRoomCompositeEgress(
       roomName,
-      {
-        segments: {
-          filenamePrefix: `hashclout/${matchId}/stream`,
-          playlistName: "index.m3u8",
-          livePlaylistName: "live.m3u8",
-          segmentDuration: 3,
-        },
-      },
-      {
-        layout: "grid",
-        audioOnly: false,
-      }
+      output,
+      "grid",
     );
 
     return NextResponse.json({
