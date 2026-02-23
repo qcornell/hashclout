@@ -165,6 +165,7 @@ export default function Home() {
   /* ─── video privacy ─── */
   const [cameraVisible, setCameraVisible] = useState(false); // off by default for privacy
   const [overlaysVisible, setOverlaysVisible] = useState(false); // tap to show secondary overlays
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   /* ─── custom debate settings (unlocked at 1M clout or 10K followers) ─── */
   const [showCustomize, setShowCustomize] = useState(false);
@@ -300,18 +301,39 @@ export default function Home() {
   /* ═══ MOBILE VIEWPORT FIX ═══ */
   useEffect(() => {
     if (gameState !== "debating") return;
+
+    // Lock body scroll during debate
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.width = "100%";
+    document.body.style.top = "0";
+
     // Handle mobile keyboard resize via visualViewport
     const vv = window.visualViewport;
-    if (!vv) return;
-    const handler = () => {
-      document.documentElement.style.setProperty("--vvh", `${vv.height}px`);
-      window.scrollTo(0, 0);
-    };
-    vv.addEventListener("resize", handler);
-    handler();
+    if (vv) {
+      const handler = () => {
+        document.documentElement.style.setProperty("--vvh", `${vv.height}px`);
+      };
+      vv.addEventListener("resize", handler);
+      vv.addEventListener("scroll", handler);
+      handler();
+
+      return () => {
+        vv.removeEventListener("resize", handler);
+        vv.removeEventListener("scroll", handler);
+        document.documentElement.style.removeProperty("--vvh");
+        document.body.style.overflow = "";
+        document.body.style.position = "";
+        document.body.style.width = "";
+        document.body.style.top = "";
+      };
+    }
+
     return () => {
-      vv.removeEventListener("resize", handler);
-      document.documentElement.style.removeProperty("--vvh");
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+      document.body.style.top = "";
     };
   }, [gameState]);
 
@@ -922,7 +944,7 @@ export default function Home() {
     setCommentInput(""); setViewerCount(35); setUserSpeakTime(0); setSentimentPct(52);
     setEmojiCounts({ "👍": 0, "👎": 0, "🔥": 0, "💯": 0, "😂": 0, "🤯": 0 });
     setMatchId(null); setEloDelta(0); setQueueId(null); setOpponent(null);
-    setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(false); setOverlaysVisible(false);
+    setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(false); setOverlaysVisible(false); setShowExitConfirm(false);
     setShowCustomize(false); setCustomRapidRounds(1); setCustomRoundTime(60);
     queueUnsubRef.current?.(); queueUnsubRef.current = null;
     msgUnsubRef.current?.(); msgUnsubRef.current = null;
@@ -1229,6 +1251,12 @@ export default function Home() {
               <div className="debate-input-bar">
                 <input type="text" className="debate-input" value={inputValue} onChange={e => { handleInputChange(e.target.value); if (moderationWarning) setModerationWarning(null); }} onKeyDown={e => e.key === "Enter" && handleSendMessage()} placeholder={isLiveMatch ? "Argue your point…" : "Make your argument…"} disabled={!isLiveMatch && opponentTyping} />
                 <button className="btn-send-debate" onClick={handleSendMessage} disabled={(!isLiveMatch && opponentTyping) || !inputValue.trim()}><Send size={16} /></button>
+                <button onClick={() => setShowExitConfirm(true)} style={{
+                  width: 42, height: 42, flexShrink: 0, borderRadius: 10,
+                  background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)",
+                  color: "rgba(255,255,255,.30)", fontSize: 18, cursor: "pointer",
+                  display: "grid", placeItems: "center",
+                }}>×</button>
               </div>
             </div>
           )}
@@ -1396,7 +1424,7 @@ export default function Home() {
                     )}
 
                     {/* Exit/forfeit button */}
-                    <button onClick={() => { if (matchId && user) finishMatch(matchId, null); handlePlayAgain(); }} style={{
+                    <button onClick={(e) => { e.stopPropagation(); setShowExitConfirm(true); }} style={{
                       position: "absolute", bottom: 16, right: 16,
                       width: 30, height: 30, borderRadius: 999,
                       background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.10)",
@@ -1463,11 +1491,51 @@ export default function Home() {
         active={gameState === "debating"}
         onForfeit={() => {
           if (matchId && user) {
-            finishMatch(matchId, null); // no winner on forfeit
+            finishMatch(matchId, null);
           }
           handlePlayAgain();
         }}
       />
+
+      {/* Exit confirmation modal */}
+      {showExitConfirm && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 200,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(7,7,12,.85)", backdropFilter: "blur(12px)",
+        }} onClick={() => setShowExitConfirm(false)}>
+          <div style={{
+            width: "90%", maxWidth: 340, padding: "32px 24px", borderRadius: 20,
+            background: "linear-gradient(180deg, rgba(18,14,22,.98), rgba(10,8,14,.99))",
+            border: "1px solid rgba(255,255,255,.08)",
+            boxShadow: "0 40px 100px rgba(0,0,0,.6)",
+            textAlign: "center",
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>⚠️</div>
+            <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 6, color: "rgba(255,255,255,.92)" }}>Exit Debate?</h2>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,.40)", marginBottom: 20, lineHeight: 1.5 }}>
+              Leaving a live match counts as a <strong style={{ color: "#ff4d3d" }}>forfeit</strong>. You'll lose ELO and your opponent wins.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button onClick={() => setShowExitConfirm(false)} style={{
+                padding: "11px 22px", borderRadius: 12, border: "none",
+                background: "linear-gradient(135deg, #ff4d3d, #ff7a45)", color: "#fff",
+                fontFamily: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer",
+              }}>Stay</button>
+              <button onClick={() => {
+                setShowExitConfirm(false);
+                if (matchId && user) finishMatch(matchId, null);
+                handlePlayAgain();
+              }} style={{
+                padding: "11px 22px", borderRadius: 12,
+                border: "1px solid rgba(255,255,255,.10)", background: "rgba(255,255,255,.04)",
+                color: "rgba(255,255,255,.45)", fontFamily: "inherit", fontSize: 13,
+                fontWeight: 700, cursor: "pointer",
+              }}>Leave & Forfeit</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
