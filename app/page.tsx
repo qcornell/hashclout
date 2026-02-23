@@ -31,7 +31,7 @@ interface FloatEmoji { id: number; emoji: string; x: number; }
 interface VComment { id: number; sender: "user" | "opponent"; text: string; }
 
 /* ═══ CONSTANTS ═══ */
-const REACTION_EMOJIS = ["👍", "👎", "🔥", "💀", "😂", "🤯"];
+const REACTION_EMOJIS = ["👍", "👎", "🔥", "💯", "😂", "🤯"];
 
 const OPP_COMMENTS_POOL = [
   "That's a stretch…", "Facts!", "Source?", "Interesting…",
@@ -221,7 +221,7 @@ export default function Home() {
   const [videoComments, setVideoComments] = useState<VComment[]>([]);
   const [commentInput, setCommentInput] = useState("");
   const [viewerCount, setViewerCount] = useState(35);
-  const [emojiCounts, setEmojiCounts] = useState<Record<string, number>>({ "👍": 0, "👎": 0, "🔥": 0, "💀": 0, "😂": 0, "🤯": 0 });
+  const [emojiCounts, setEmojiCounts] = useState<Record<string, number>>({ "👍": 0, "👎": 0, "🔥": 0, "💯": 0, "😂": 0, "🤯": 0 });
   const [userSpeakTime, setUserSpeakTime] = useState(0);
   const [sentimentPct, setSentimentPct] = useState(52);
 
@@ -920,7 +920,7 @@ export default function Home() {
     debateInitRef.current = false; setDebateFormat(null); setPermissionState(null);
     setVideoPhase(null); setPhaseTimer(0); setFloatingEmojis([]); setVideoComments([]);
     setCommentInput(""); setViewerCount(35); setUserSpeakTime(0); setSentimentPct(52);
-    setEmojiCounts({ "👍": 0, "👎": 0, "🔥": 0, "💀": 0, "😂": 0, "🤯": 0 });
+    setEmojiCounts({ "👍": 0, "👎": 0, "🔥": 0, "💯": 0, "😂": 0, "🤯": 0 });
     setMatchId(null); setEloDelta(0); setQueueId(null); setOpponent(null);
     setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(false); setOverlaysVisible(false);
     setShowCustomize(false); setCustomRapidRounds(1); setCustomRoundTime(60);
@@ -1292,14 +1292,16 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* HUD TOP */}
+                {/* HUD TOP — timer centered */}
                 {isActivePhase && (
                   <div className="video-hud-top">
                     <div className={`vturn-badge ${isUserSpeaking ? "vturn-you" : isRapidFire ? "vturn-rapid" : "vturn-opp"}`}>
                       {isUserSpeaking ? "🎤 YOUR TURN" : isRapidFire ? "⚡ RAPID FIRE" : "👁 LISTENING"}
                     </div>
 
-                    <CircleTimer seconds={phaseTimer} max={phaseMax} />
+                    <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", top: 10 }}>
+                      <CircleTimer seconds={phaseTimer} max={phaseMax} />
+                    </div>
 
                     <div className="video-round-pill">R{roundInfo.num}: {roundInfo.title}</div>
                   </div>
@@ -1344,29 +1346,37 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* CAMERA TOGGLE */}
+                {/* CAMERA TOGGLE — icon only */}
                 {isActivePhase && (
-                  <button onClick={() => setCameraVisible(!cameraVisible)} style={{
-                    position: "absolute", top: 14, right: 14, zIndex: 22,
-                    padding: "6px 14px", borderRadius: 10,
-                    background: cameraVisible ? "rgba(34,197,94,.15)" : "rgba(255,255,255,.08)",
-                    border: `1px solid ${cameraVisible ? "rgba(34,197,94,.25)" : "rgba(255,255,255,.10)"}`,
-                    color: cameraVisible ? "#22c55e" : "rgba(255,255,255,.50)",
-                    fontFamily: "inherit", fontSize: 11, fontWeight: 700, cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: 6,
+                  <button onClick={(e) => { e.stopPropagation(); setCameraVisible(!cameraVisible); }} style={{
+                    position: "absolute", top: 12, right: 12, zIndex: 22,
+                    width: 36, height: 36, borderRadius: 999,
+                    background: cameraVisible ? "rgba(34,197,94,.15)" : "rgba(255,255,255,.10)",
+                    border: `1px solid ${cameraVisible ? "rgba(34,197,94,.25)" : "rgba(255,255,255,.12)"}`,
+                    color: cameraVisible ? "#22c55e" : "rgba(255,255,255,.45)",
+                    fontSize: 16, cursor: "pointer",
+                    display: "grid", placeItems: "center",
                     transition: "all .2s",
                   }}>
-                    {cameraVisible ? "📹 Camera On" : "🔒 Show Face"}
+                    {cameraVisible ? "👁" : "👁‍🗨"}
                   </button>
                 )}
 
                 {/* BOTTOM ACTION BAR */}
                 {isActivePhase && (
-                  <div className="video-bottom">
+                  <div className="video-bottom" onClick={e => e.stopPropagation()}>
+                    {/* Sentiment poll — compact inline */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: "var(--green)" }}>{Math.round(sentimentPct)}%</span>
+                      <div style={{ width: 80, height: 3, borderRadius: 2, background: "rgba(255,255,255,.08)", overflow: "hidden" }}>
+                        <div style={{ height: "100%", borderRadius: 2, background: "var(--green)", width: `${sentimentPct}%`, transition: "width .5s" }} />
+                      </div>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: "var(--accentA)" }}>{Math.round(100 - sentimentPct)}%</span>
+                    </div>
+
                     {isUserSpeaking ? (
                       <>
                         <button className="btn-yield" onClick={handleYield}>Done Speaking ⏩</button>
-                        <div className="listening-info">Opponent is watching · {viewerCount} viewers</div>
                       </>
                     ) : (
                       <>
@@ -1384,6 +1394,15 @@ export default function Home() {
                         </div>
                       </>
                     )}
+
+                    {/* Exit/forfeit button */}
+                    <button onClick={() => { if (matchId && user) finishMatch(matchId, null); handlePlayAgain(); }} style={{
+                      position: "absolute", bottom: 16, right: 16,
+                      width: 30, height: 30, borderRadius: 999,
+                      background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.10)",
+                      color: "rgba(255,255,255,.30)", fontSize: 14, cursor: "pointer",
+                      display: "grid", placeItems: "center",
+                    }}>×</button>
                   </div>
                 )}
               </div>

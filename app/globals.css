@@ -1096,7 +1096,7 @@ body {
   .video-countdown-num { font-size: 64px; }
 
   /* Minimal HUD — only timer + turn badge visible by default */
-  .video-hud-top { padding: 14px 14px 10px; gap: 8px; }
+  .video-hud-top { padding: 10px 12px 8px; gap: 6px; position: relative; }
   .vturn-badge { font-size: 10px; padding: 4px 10px; }
   .ctimer { width: 40px; height: 40px; }
   .ctimer svg { width: 40px; height: 40px; }
@@ -1181,4 +1181,10 @@ body {
 @keyframes suggest-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(255,122,69,0), 0 8px 24px rgba(0,0,0,.3); border-color: rgba(255,122,69,.35); }
   50% { box-shadow: 0 0 20px 4px rgba(255,122,69,.25), 0 8px 24px rgba(0,0,0,.3); border-color: rgba(255,122,69,.5); }
+}
+
+/* Hide bottom tab bar during active debates */
+body:has(.app-debating) .mobile-tab-bar-global,
+body:has(.app-video) .mobile-tab-bar-global {
+  display: none !important;
 }
