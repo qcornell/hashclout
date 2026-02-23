@@ -1117,9 +1117,8 @@ body {
   .video-overlays-visible .video-sentiment-row { top: 84px; right: auto; left: 14px; padding: 3px 8px; }
   .video-overlays-visible .video-viewers { top: 108px; right: auto; left: 14px; font-size: 10px; padding: 3px 8px; }
 
-  /* Comments hidden by default on mobile */
-  .video-comments-area { display: none; }
-  .video-overlays-visible .video-comments-area { display: flex; top: 130px; bottom: auto; left: 12px; max-width: 55%; }
+  /* Comments always visible on mobile — compact at top left */
+  .video-comments-area { display: flex; top: 60px; bottom: auto; left: 10px; max-width: 55%; }
   .video-comment { padding: 4px 8px; }
   .vc-text { font-size: 10px; }
 
