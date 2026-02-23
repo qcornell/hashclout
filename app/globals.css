@@ -825,7 +825,7 @@ body {
 
 /* Sentiment bar */
 .video-sentiment-row {
-  position: absolute; top: 72px; right: 20px; z-index: 18;
+  position: absolute; top: 82px; right: 20px; z-index: 18;
   display: flex; align-items: center; gap: 8px;
   padding: 6px 14px; border-radius: 10px;
   background: rgba(0,0,0,.50); backdrop-filter: blur(8px);
@@ -834,7 +834,7 @@ body {
 }
 
 .video-viewers {
-  position: absolute; top: 112px; right: 20px; z-index: 18;
+  position: absolute; top: 122px; right: 20px; z-index: 18;
   display: flex; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 700; color: var(--muted);
   padding: 6px 14px; border-radius: 8px;
@@ -845,7 +845,7 @@ body {
 
 /* Mic status indicator */
 .mic-status {
-  position: absolute; top: 150px; right: 20px;
+  position: absolute; top: 160px; right: 20px;
   z-index: 18; display: flex; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 700; color: var(--muted2);
   padding: 6px 16px; border-radius: 20px;
@@ -891,7 +891,7 @@ body {
 
 /* Video comments overlay */
 .video-comments-area {
-  position: absolute; left: 16px; bottom: 100px; z-index: 18;
+  position: absolute; left: 16px; top: 80px; z-index: 18;
   max-width: 55%; display: flex; flex-direction: column;
   gap: 6px; pointer-events: none;
 }
@@ -1024,16 +1024,13 @@ body {
   .stats-bar { justify-content: center; gap: 18px; padding: 4px 0 8px; }
   .stat { font-size: 12px; }
   .main { padding: 0 16px; flex: 1; }
-  .question-card-wrapper { width: 100%; margin-top: 0; border-radius: 12px; order: 2; }
-  .question-card { padding: 12px 14px; border-radius: 10px; }
-  .q-header { gap: 6px; margin-bottom: 0; }
-  .q-warning { width: 22px; height: 22px; }
-  .q-warning svg { width: 22px; height: 20px; }
-  .q-title { font-size: 15px; }
-  .q-badge { display: none; }
-  .q-desc { display: none; }
-  .q-sparkle { display: none; }
-  .q-glow { display: none; }
+  .question-card-wrapper { width: 100%; margin-top: 16px; border-radius: 16px; }
+  .question-card { padding: 22px 20px 20px; border-radius: 14px; }
+  .q-header { gap: 10px; margin-bottom: 4px; }
+  .q-warning { width: 36px; height: 36px; }
+  .q-title { font-size: 26px; }
+  .q-badge { font-size: 12px; margin: 8px 0 8px; }
+  .q-desc { font-size: 14px; line-height: 1.6; }
   .arena { grid-template-columns: 1fr 50px 1fr; padding: 10px 0; min-height: 0; flex: 0; order: 1; }
   .fighter { gap: 12px; }
   .avatar-orb { width: 140px; height: 140px; filter: drop-shadow(0 20px 40px rgba(0,0,0,.50)); }
@@ -1099,16 +1096,16 @@ body {
   .ctimer { width: 44px; height: 44px; }
   .ctimer svg { width: 44px; height: 44px; }
   .ctimer-text { font-size: 13px; }
-  /* Move mic status + sentiment + viewers to LEFT under rapid fire badge */
-  .mic-status { top: auto; right: auto; left: 14px; bottom: 195px; font-size: 10px; padding: 5px 12px; }
-  .video-sentiment-row { top: auto; right: auto; left: 14px; bottom: 165px; padding: 4px 10px; }
-  .video-viewers { top: auto; right: auto; left: 14px; bottom: 140px; font-size: 11px; padding: 5px 10px; }
+  /* Move mic status + sentiment + viewers to LEFT stacked */
+  .mic-status { top: 92px; right: auto; left: 14px; font-size: 10px; padding: 5px 12px; }
+  .video-sentiment-row { top: 122px; right: auto; left: 14px; padding: 4px 10px; }
+  .video-viewers { top: 152px; right: auto; left: 14px; font-size: 11px; padding: 5px 10px; }
 
   /* Round pill to bottom right above icons */
   .video-round-pill { position: absolute; top: auto; bottom: 115px; right: 14px; left: auto; font-size: 9px; padding: 4px 10px; }
 
-  /* Raise comments area above the bottom controls */
-  .video-comments-area { max-width: 60%; bottom: 210px; left: 12px; }
+  /* Comments at top left under HUD */
+  .video-comments-area { max-width: 60%; top: 180px; bottom: auto; left: 12px; }
   .video-comment { padding: 5px 10px; }
   .vc-text { font-size: 11px; }
 

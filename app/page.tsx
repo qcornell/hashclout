@@ -12,6 +12,7 @@ import { calculateElo, calculateTieElo, type EloResult, type TieResult } from "@
 import { joinQueue, findMatch, subscribeToQueue, leaveQueue, type MatchResult } from "@/lib/matchmaking";
 import { sendDebateMessage, subscribeToMessages, subscribeToMatch, finishMatch, createTypingChannel, type LiveMessage } from "@/lib/live-debate";
 import { moderateMessage } from "@/lib/moderation";
+import ForfeitGuard from "@/components/ForfeitGuard";
 
 /* ═══ TYPES ═══ */
 type GameState = "idle" | "prompted" | "chosen" | "format-select" | "matchmaking" | "searching" | "found" | "debating" | "ended";
@@ -161,6 +162,17 @@ export default function Home() {
   const [noMoreTopics, setNoMoreTopics] = useState(false);
   const [suggestGlow, setSuggestGlow] = useState(false);
 
+  /* ─── video privacy ─── */
+  const [cameraVisible, setCameraVisible] = useState(false); // off by default for privacy
+
+  /* ─── custom debate settings (unlocked at 1M clout or 10K followers) ─── */
+  const [showCustomize, setShowCustomize] = useState(false);
+  const [customRapidRounds, setCustomRapidRounds] = useState(1); // default 1 rapid fire round
+  const [customRoundTime, setCustomRoundTime] = useState(60); // seconds, default 60, max 300
+  const UNLOCK_ELO = 1000000;
+  const UNLOCK_FOLLOWERS = 10000;
+  const isUnlocked = (profile?.elo_rating || 0) >= UNLOCK_ELO || (profile as any)?.followers_count >= UNLOCK_FOLLOWERS;
+
   /* ─── matchmaking ─── */
   const [queueId, setQueueId] = useState<string | null>(null);
   const [opponent, setOpponent] = useState<MatchResult | null>(null);
@@ -262,7 +274,9 @@ export default function Home() {
   const userMsgCount = messages.filter(m => m.sender === "user").length;
   const isWin = userClout > opponentClout;
   const isTie = userClout === opponentClout;
-  const textCurrentRound = debateTimer > 120 ? 1 : debateTimer > 60 ? 2 : 3;
+  const totalRounds = 2 + customRapidRounds;
+  const roundDuration = customRoundTime;
+  const textCurrentRound = Math.max(1, totalRounds - Math.floor(debateTimer / roundDuration));
 
   const appClass = [
     "app",
@@ -453,7 +467,10 @@ export default function Home() {
     if (gameState !== "debating" || debateFormat !== "text" || isLiveMatch) { debateInitRef.current = false; return; }
     if (debateInitRef.current) return;
     debateInitRef.current = true;
-    setMessages([{ id: Date.now(), sender: "system", text: "⌨️ Debate started — make your opening argument." }]);
+    // Set debate timer based on custom settings: (2 + customRapidRounds) rounds * customRoundTime
+    const totalTime = (2 + customRapidRounds) * customRoundTime;
+    setDebateTimer(totalTime);
+    setMessages([{ id: Date.now(), sender: "system", text: `⌨️ Debate started — ${2 + customRapidRounds} rounds, ${Math.floor(customRoundTime / 60)}:${(customRoundTime % 60).toString().padStart(2, "0")} each. Make your opening argument.` }]);
 
     // AI opens with a topic-aware first message
     const t1 = setTimeout(() => {
@@ -564,13 +581,12 @@ export default function Home() {
     return () => clearInterval(i);
   }, [isUserSpeaking, isRapidFire]);
 
-  // Simulated opponent emojis during user speaking
+  // Simulated opponent emojis during user speaking (floating only, no counts)
   useEffect(() => {
     if (!isUserSpeaking) return;
     const fire = () => {
       const emoji = REACTION_EMOJIS[Math.floor(Math.random() * REACTION_EMOJIS.length)];
       addFloatingEmoji(emoji);
-      setEmojiCounts(p => ({ ...p, [emoji]: (p[emoji] || 0) + 1 }));
     };
     const i = setInterval(fire, 2800 + Math.random() * 3200);
     const t = setTimeout(fire, 1500 + Math.random() * 2000);
@@ -818,7 +834,7 @@ export default function Home() {
 
     if (isLiveMatch && matchId && user) {
       // LIVE: send to Supabase, opponent gets it via subscription
-      const round = debateTimer > 120 ? "opening" : debateTimer > 60 ? "rapid_fire" : "closing";
+      const round = debateTimer > roundDuration * (totalRounds - 1) ? "opening" : debateTimer > roundDuration ? "rapid_fire" : "closing";
       sendDebateMessage(matchId, user.id, text, round);
     } else {
       // AI OPPONENT: GPT-powered responses
@@ -885,7 +901,8 @@ export default function Home() {
     setCommentInput(""); setViewerCount(35); setUserSpeakTime(0); setSentimentPct(52);
     setEmojiCounts({ "👍": 0, "👎": 0, "🔥": 0, "💀": 0, "😂": 0, "🤯": 0 });
     setMatchId(null); setEloDelta(0); setQueueId(null); setOpponent(null);
-    setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null);
+    setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(false);
+    setShowCustomize(false); setCustomRapidRounds(1); setCustomRoundTime(60);
     queueUnsubRef.current?.(); queueUnsubRef.current = null;
     msgUnsubRef.current?.(); msgUnsubRef.current = null;
     matchUnsubRef.current?.(); matchUnsubRef.current = null;
@@ -934,13 +951,112 @@ export default function Home() {
             {permissionState === "requesting" && <div className="perm-status perm-requesting"><div className="perm-spinner" />Requesting camera &amp; mic access…</div>}
             {permissionState === "granted" && <div className="perm-status perm-granted">✅ Permissions granted — entering queue…</div>}
             {permissionState === "denied" && <div className="perm-status perm-denied">❌ Permission denied.<button className="perm-fallback-btn" onClick={handleFallbackToText}>Use Text Instead →</button></div>}
+
+            {/* Customize Debate — teaser or unlocked */}
+            <div style={{ marginTop: 20, position: "relative" }}>
+              <button onClick={() => setShowCustomize(!showCustomize)} style={{
+                width: "100%", padding: "12px 18px", borderRadius: 12,
+                background: isUnlocked ? "rgba(255,122,69,.08)" : "rgba(255,255,255,.03)",
+                border: `1px solid ${isUnlocked ? "rgba(255,122,69,.18)" : "rgba(255,255,255,.06)"}`,
+                color: isUnlocked ? "#ff7a45" : "rgba(255,255,255,.30)",
+                fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                transition: "all .2s",
+              }}>
+                {isUnlocked ? "⚙️ Customize Rounds & Time" : "🔒 Custom Rounds & Time"}
+                <span style={{ fontSize: 10, opacity: 0.6 }}>{showCustomize ? "▲" : "▼"}</span>
+              </button>
+
+              {showCustomize && (
+                <div style={{
+                  marginTop: 10, padding: "20px 22px", borderRadius: 14,
+                  background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)",
+                }}>
+                  {!isUnlocked ? (
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 32, marginBottom: 10 }}>🏆</div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "rgba(255,255,255,.80)", marginBottom: 6 }}>Elite Feature</div>
+                      <p style={{ fontSize: 12, color: "rgba(255,255,255,.35)", lineHeight: 1.6, marginBottom: 14 }}>
+                        Customize rapid fire rounds and round duration. Unlock by reaching:
+                      </p>
+                      <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
+                        <div style={{
+                          padding: "10px 18px", borderRadius: 10,
+                          background: "rgba(255,122,69,.06)", border: "1px solid rgba(255,122,69,.12)",
+                          textAlign: "center",
+                        }}>
+                          <div style={{ fontSize: 18, fontWeight: 900, color: "#ff7a45" }}>1M</div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.30)", letterSpacing: ".08em" }}>ELO POINTS</div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,.20)" }}>OR</div>
+                        <div style={{
+                          padding: "10px 18px", borderRadius: 10,
+                          background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.12)",
+                          textAlign: "center",
+                        }}>
+                          <div style={{ fontSize: 18, fontWeight: 900, color: "#a855f7" }}>10K</div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.30)", letterSpacing: ".08em" }}>FOLLOWERS</div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,.20)", marginTop: 12, fontStyle: "italic" }}>
+                        Your ELO: {profile?.elo_rating?.toLocaleString() || 0} · Followers: {(profile as any)?.followers_count || 0}
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                      {/* Rapid Fire Rounds */}
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.45)", letterSpacing: ".06em", marginBottom: 8 }}>
+                          RAPID FIRE ROUNDS
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          {[1, 2, 3].map(n => (
+                            <button key={n} onClick={() => setCustomRapidRounds(n)} style={{
+                              flex: 1, padding: "10px 0", borderRadius: 10,
+                              background: customRapidRounds === n ? "rgba(255,122,69,.12)" : "rgba(255,255,255,.03)",
+                              border: `1px solid ${customRapidRounds === n ? "rgba(255,122,69,.25)" : "rgba(255,255,255,.06)"}`,
+                              color: customRapidRounds === n ? "#ff7a45" : "rgba(255,255,255,.35)",
+                              fontFamily: "inherit", fontSize: 14, fontWeight: 800, cursor: "pointer",
+                              transition: "all .15s",
+                            }}>
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Round Duration */}
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.45)", letterSpacing: ".06em" }}>
+                            ROUND DURATION
+                          </span>
+                          <span style={{ fontSize: 13, fontWeight: 900, color: "#ff7a45" }}>
+                            {Math.floor(customRoundTime / 60)}:{(customRoundTime % 60).toString().padStart(2, "0")}
+                          </span>
+                        </div>
+                        <input type="range" min={30} max={300} step={15} value={customRoundTime} onChange={e => setCustomRoundTime(Number(e.target.value))} style={{
+                          width: "100%", height: 4, appearance: "none", WebkitAppearance: "none",
+                          background: `linear-gradient(90deg, #ff7a45 ${((customRoundTime - 30) / 270) * 100}%, rgba(255,255,255,.08) ${((customRoundTime - 30) / 270) * 100}%)`,
+                          borderRadius: 2, outline: "none", cursor: "pointer",
+                        }} />
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "rgba(255,255,255,.20)", marginTop: 4 }}>
+                          <span>0:30</span><span>5:00</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
           </div></div>
         </div>
       )}
 
       {/* MATCHMAKING QUEUE */}
       {isMatchmaking && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50 }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(7,7,12,.92)' }}>
           <MatchmakingQueue
             side={choice || 'yes'}
             format={debateFormat || 'text'}
@@ -1064,7 +1180,7 @@ export default function Home() {
                 <span className="debate-topic-label">{topicTitle}</span>
                 <span className="debate-format-badge dfb-text">{isLiveMatch ? "🔴 LIVE" : "⌨️ TEXT"}</span>
                 <div className={`debate-timer-box ${debateTimer <= 30 ? "timer-low" : ""}`}><Clock size={15} /><span>{formatTime(debateTimer)}</span></div>
-                <span className="debate-round-label">Round {textCurrentRound}/3</span>
+                <span className="debate-round-label">Round {textCurrentRound}/{totalRounds}</span>
               </div>
               <div className="debate-scores-bar">
                 <div className="score-card sc-user"><div className="sc-avatar"><User size={18} /></div><div className="sc-info"><span className="sc-side">{profile?.display_name || profile?.username || "You"} · {userSideLabel}</span><div className="sc-clout-row"><span className="sc-clout-value">{userClout}</span><span className="sc-clout-label">CLOUT</span></div></div></div>
@@ -1101,12 +1217,27 @@ export default function Home() {
             <div className="video-debate">
               <div className={`video-stage ${stageClass}`}>
 
-                {/* Self video feed */}
+                {/* Self video feed — hidden by default for privacy */}
                 <video
                   ref={selfVideoRef}
                   autoPlay muted playsInline
-                  className={`stage-feed stage-feed-self ${showSelf ? "" : "sf-hidden"}`}
+                  className={`stage-feed stage-feed-self ${(showSelf && cameraVisible) ? "" : "sf-hidden"}`}
                 />
+
+                {/* Self placeholder (when camera hidden) */}
+                {showSelf && !cameraVisible && (
+                  <div className="stage-feed stage-feed-opp">
+                    <div className="opp-placeholder-inner">
+                      <div className={`opp-audio-viz ${isUserSpeaking || isRapidFire ? "" : "viz-paused"}`}>
+                        {[...Array(7)].map((_, i) => <div key={i} className="opp-audio-bar" style={{ animationDelay: `${i * 0.12}s`, background: "linear-gradient(to top, var(--accentA), var(--accentB))" }} />)}
+                      </div>
+                      <div className="opp-avatar-big" style={{ background: "rgba(255,77,61,.12)", borderColor: "rgba(255,77,61,.20)" }}><User size={48} /></div>
+                      <div className="opp-side-label" style={{ color: "#ff7a45" }}>{userSideLabel}</div>
+                      {isUserSpeaking && <div className="opp-speaking-label">🎤 You're Speaking…</div>}
+                      {isRapidFire && <div className="opp-speaking-label">⚡ Rapid Fire</div>}
+                    </div>
+                  </div>
+                )}
 
                 {/* Opponent placeholder feed */}
                 <div className={`stage-feed stage-feed-opp ${showOpp ? "" : "sf-hidden"}`}>
@@ -1192,6 +1323,22 @@ export default function Home() {
                   </div>
                 )}
 
+                {/* CAMERA TOGGLE */}
+                {isActivePhase && (
+                  <button onClick={() => setCameraVisible(!cameraVisible)} style={{
+                    position: "absolute", top: 14, right: 14, zIndex: 22,
+                    padding: "6px 14px", borderRadius: 10,
+                    background: cameraVisible ? "rgba(34,197,94,.15)" : "rgba(255,255,255,.08)",
+                    border: `1px solid ${cameraVisible ? "rgba(34,197,94,.25)" : "rgba(255,255,255,.10)"}`,
+                    color: cameraVisible ? "#22c55e" : "rgba(255,255,255,.50)",
+                    fontFamily: "inherit", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 6,
+                    transition: "all .2s",
+                  }}>
+                    {cameraVisible ? "📹 Camera On" : "🔒 Show Face"}
+                  </button>
+                )}
+
                 {/* BOTTOM ACTION BAR */}
                 {isActivePhase && (
                   <div className="video-bottom">
@@ -1251,7 +1398,7 @@ export default function Home() {
                     <>
                       <span className="results-stat"><strong>{userMsgCount}</strong> arguments made</span>
                       <span className="results-stat"><strong>{Math.ceil((180 - debateTimer) / 60)}</strong> min debated</span>
-                      <span className="results-stat">Round <strong>{textCurrentRound}</strong>/3</span>
+                      <span className="results-stat">Round <strong>{textCurrentRound}</strong>/{totalRounds}</span>
                     </>
                   )}
                 </div>
@@ -1270,6 +1417,17 @@ export default function Home() {
 
       {/* Auth modal (triggered when unauthenticated user hits START) */}
       <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} initialTab="signup" />
+
+      {/* Forfeit guard — blocks navigation during active debates */}
+      <ForfeitGuard
+        active={gameState === "debating"}
+        onForfeit={() => {
+          if (matchId && user) {
+            finishMatch(matchId, null); // no winner on forfeit
+          }
+          handlePlayAgain();
+        }}
+      />
     </>
   );
 }
