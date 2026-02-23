@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { EgressClient, EncodedFileOutput, SegmentedFileOutput } from "livekit-server-sdk";
+import { EgressClient } from "livekit-server-sdk";
 
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
-const LIVEKIT_HOST = process.env.LIVEKIT_HOST || ""; // e.g. https://your-project.livekit.cloud
+const LIVEKIT_HOST = process.env.LIVEKIT_HOST || "";
 
 /**
  * Start HLS egress for a LiveKit room.
- * Returns the HLS playlist URL for spectators.
+ * Returns the egress ID for spectators.
  */
 export async function POST(req: NextRequest) {
   if (!API_KEY || !API_SECRET || !LIVEKIT_HOST) {
@@ -23,17 +23,17 @@ export async function POST(req: NextRequest) {
 
     const egressClient = new EgressClient(LIVEKIT_HOST, API_KEY, API_SECRET);
 
-    // Start room composite egress with HLS output
-    const output = new SegmentedFileOutput({
-      filenamePrefix: `hashclout/${matchId}/stream`,
-      playlistName: "index.m3u8",
-      filenameSuffix: SegmentedFileOutput.LivekitSegmentedFileSuffix.INDEX,
-      livePlaylistName: "live.m3u8",
-    });
-
+    // Start room composite egress with HLS segments
     const egressInfo = await egressClient.startRoomCompositeEgress(
       roomName,
-      { segments: output },
+      {
+        segments: {
+          filenamePrefix: `hashclout/${matchId}/stream`,
+          playlistName: "index.m3u8",
+          livePlaylistName: "live.m3u8",
+          segmentDuration: 3,
+        },
+      },
       {
         layout: "grid",
         audioOnly: false,
@@ -42,8 +42,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       egressId: egressInfo.egressId,
-      // HLS URL will be available once egress starts producing segments
-      // The exact URL depends on your LiveKit egress output config (S3, GCS, etc.)
       status: "started",
     });
   } catch (err) {
