@@ -1418,16 +1418,16 @@ export default function Home() {
                             </button>
                           ))}
                         </div>
-                        <div className="video-comment-wrap">
-                          <input type="text" className="video-comment-input" value={commentInput} onChange={e => setCommentInput(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSendVideoComment()} placeholder="Type a comment…" />
-                          <button className="btn-send-comment" onClick={handleSendVideoComment}><Send size={14} /></button>
-                          <button onClick={(e) => { e.stopPropagation(); setShowExitConfirm(true); }} style={{
+                        <form className="video-comment-wrap" onSubmit={e => { e.preventDefault(); handleSendVideoComment(); (document.activeElement as HTMLElement)?.blur(); }}>
+                          <input type="text" className="video-comment-input" value={commentInput} onChange={e => setCommentInput(e.target.value)} placeholder="Type a comment…" enterKeyHint="send" />
+                          <button type="submit" className="btn-send-comment"><Send size={14} /></button>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setShowExitConfirm(true); }} style={{
                             width: 34, height: 34, flexShrink: 0, borderRadius: 10,
                             background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)",
                             color: "rgba(255,255,255,.30)", fontSize: 16, cursor: "pointer",
                             display: "grid", placeItems: "center",
                           }}>×</button>
-                        </div>
+                        </form>
                       </>
                     )}
                   </div>
