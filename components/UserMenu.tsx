@@ -10,7 +10,20 @@ export default function UserMenu() {
   const { user, profile, loading, signOut } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
+
+  // Hide when app-debating or app-video class is on .app div
+  useEffect(() => {
+    const check = () => {
+      const app = document.querySelector('.app-debating, .app-video, .app-ended');
+      setHidden(!!app);
+    };
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -23,7 +36,7 @@ export default function UserMenu() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  if (loading) return null;
+  if (loading || hidden) return null;
 
   const pill: React.CSSProperties = {
     position: "fixed", top: 14, right: 14, zIndex: 45,

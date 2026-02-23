@@ -30,15 +30,20 @@ export async function getFeaturedTopic(): Promise<Topic | null> {
   return getRandomTopic();
 }
 
-/** Get a random active topic */
-export async function getRandomTopic(): Promise<Topic | null> {
+/** Get a random active topic, excluding a specific ID */
+export async function getRandomTopic(excludeId?: string): Promise<Topic | null> {
   const { data: all } = await supabase
     .from("topics")
     .select("*")
     .eq("is_active", true);
 
   if (!all || all.length === 0) return null;
-  return all[Math.floor(Math.random() * all.length)] as Topic;
+  
+  // Filter out current topic
+  const candidates = excludeId ? all.filter(t => t.id !== excludeId) : all;
+  if (candidates.length === 0) return null;
+  
+  return candidates[Math.floor(Math.random() * candidates.length)] as Topic;
 }
 
 /** Get all active topics */

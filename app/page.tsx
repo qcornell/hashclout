@@ -155,6 +155,12 @@ export default function Home() {
   /* ─── elo result ─── */
   const [eloDelta, setEloDelta] = useState<number>(0);
 
+  /* ─── topic suggestion ─── */
+  const [suggestionInput, setSuggestionInput] = useState("");
+  const [suggestionSent, setSuggestionSent] = useState(false);
+  const [noMoreTopics, setNoMoreTopics] = useState(false);
+  const [suggestGlow, setSuggestGlow] = useState(false);
+
   /* ─── matchmaking ─── */
   const [queueId, setQueueId] = useState<string | null>(null);
   const [opponent, setOpponent] = useState<MatchResult | null>(null);
@@ -857,6 +863,19 @@ export default function Home() {
     }
   };
 
+  const handleSuggestTopic = async () => {
+    if (!suggestionInput.trim() || suggestionSent) return;
+    if (!user) { setShowAuthModal(true); return; }
+    await supabase.from("topic_suggestions").insert({
+      user_id: user.id,
+      username: profile?.username || "anonymous",
+      title: suggestionInput.trim(),
+    });
+    setSuggestionSent(true);
+    setSuggestionInput("");
+    setTimeout(() => setSuggestionSent(false), 3000);
+  };
+
   const handlePlayAgain = () => {
     setGameState("idle"); setChoice(null); setMessages([]); setUserClout(0); setOpponentClout(0);
     setDebateTimer(180); setCountdown(3); setInputValue(""); setOpponentTyping(false);
@@ -1024,8 +1043,16 @@ export default function Home() {
               {gameState === "found" && <div className="match-status match-found">⚡ Opponent found!</div>}
 
               <div className="bottom-bar">
-                <button className="btn-next" onClick={() => { getRandomTopic().then(t => { if (t) setTopic(t); }); }}>NEXT TOPIC</button>
-                <div className="chat-wrap"><input type="text" className="chat-input" placeholder="Say something..." /><button className="btn-send"><Play size={14} fill="white" stroke="white" /></button></div>
+                <button className="btn-next" onClick={() => {
+                  getRandomTopic(topic?.id).then(t => {
+                    if (t) { setTopic(t); setNoMoreTopics(false); setSuggestGlow(false); }
+                    else { setNoMoreTopics(true); setSuggestGlow(true); setTimeout(() => setSuggestGlow(false), 3000); }
+                  });
+                }}>NEXT TOPIC</button>
+                <div className={`chat-wrap ${suggestGlow ? "suggest-glow" : ""}`}>
+                  <input type="text" className="chat-input" placeholder={suggestionSent ? "✓ Suggestion sent!" : noMoreTopics ? "No more topics — suggest one!" : "Suggest a topic..."} value={suggestionInput} onChange={e => { setSuggestionInput(e.target.value); setSuggestionSent(false); }} onKeyDown={e => e.key === "Enter" && handleSuggestTopic()} disabled={suggestionSent} />
+                  <button className="btn-send" onClick={handleSuggestTopic} disabled={!suggestionInput.trim() || suggestionSent}><Play size={14} fill="white" stroke="white" /></button>
+                </div>
               </div>
             </>
           )}

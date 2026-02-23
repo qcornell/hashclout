@@ -777,8 +777,8 @@ body {
 .video-hud-top {
   position: absolute; top: 0; left: 0; right: 0; z-index: 20;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; gap: 12px;
-  background: linear-gradient(180deg, rgba(0,0,0,.70) 0%, rgba(0,0,0,.30) 70%, transparent 100%);
+  padding: 52px 20px 16px; gap: 12px;
+  background: linear-gradient(180deg, rgba(0,0,0,.70) 0%, rgba(0,0,0,.30) 80%, transparent 100%);
 }
 .vturn-badge {
   padding: 7px 16px; border-radius: 10px;
@@ -814,6 +814,13 @@ body {
   color: var(--muted); text-transform: uppercase;
   padding: 5px 14px; border-radius: 8px;
   background: rgba(0,0,0,.4); backdrop-filter: blur(8px);
+}
+
+/* DESKTOP ONLY: move "R1: OPENING STATEMENTS" pill up */
+@media (min-width: 769px) {
+  .video-round-pill {
+    transform: translateY(-24px); /* adjust: -8 to -24 */
+  }
 }
 
 /* Sentiment bar */
@@ -1017,14 +1024,17 @@ body {
   .stats-bar { justify-content: center; gap: 18px; padding: 4px 0 8px; }
   .stat { font-size: 12px; }
   .main { padding: 0 16px; flex: 1; }
-  .question-card-wrapper { width: 100%; margin-top: 16px; border-radius: 16px; }
-  .question-card { padding: 22px 20px 20px; border-radius: 14px; }
-  .q-header { gap: 10px; margin-bottom: 4px; }
-  .q-warning { width: 36px; height: 36px; }
-  .q-title { font-size: 26px; }
-  .q-badge { font-size: 12px; margin: 8px 0 8px; }
-  .q-desc { font-size: 14px; line-height: 1.6; }
-  .arena { grid-template-columns: 1fr 50px 1fr; padding: 10px 0; min-height: 0; flex: 0; }
+  .question-card-wrapper { width: 100%; margin-top: 0; border-radius: 12px; order: 2; }
+  .question-card { padding: 12px 14px; border-radius: 10px; }
+  .q-header { gap: 6px; margin-bottom: 0; }
+  .q-warning { width: 22px; height: 22px; }
+  .q-warning svg { width: 22px; height: 20px; }
+  .q-title { font-size: 15px; }
+  .q-badge { display: none; }
+  .q-desc { display: none; }
+  .q-sparkle { display: none; }
+  .q-glow { display: none; }
+  .arena { grid-template-columns: 1fr 50px 1fr; padding: 10px 0; min-height: 0; flex: 0; order: 1; }
   .fighter { gap: 12px; }
   .avatar-orb { width: 140px; height: 140px; filter: drop-shadow(0 20px 40px rgba(0,0,0,.50)); }
   .avatar-orb::before { inset: -16px; }
@@ -1084,26 +1094,32 @@ body {
   .video-stage { border-radius: 14px; }
   .round-splash-title { font-size: 28px; }
   .video-countdown-num { font-size: 64px; }
-  .video-hud-top { padding: 12px 14px; gap: 8px; }
+  .video-hud-top { padding: 44px 14px 12px; gap: 8px; }
   .vturn-badge { font-size: 10px; padding: 5px 12px; }
   .ctimer { width: 44px; height: 44px; }
   .ctimer svg { width: 44px; height: 44px; }
   .ctimer-text { font-size: 13px; }
-  .video-viewers { font-size: 11px; padding: 5px 10px; }
-  .video-round-pill { font-size: 9px; padding: 4px 10px; }
-  .mic-status { top: 62px; font-size: 10px; padding: 5px 12px; }
-  .emoji-btn { width: 44px; height: 44px; font-size: 20px; border-radius: 12px; }
-  .emoji-reaction-bar { gap: 7px; }
-  .video-comment-input { height: 38px; font-size: 16px; }
-  .btn-send-comment { width: 38px; height: 38px; }
-  .btn-yield { padding: 12px 24px; font-size: 13px; }
+  /* Move mic status + sentiment + viewers to LEFT under rapid fire badge */
+  .mic-status { top: auto; right: auto; left: 14px; bottom: 195px; font-size: 10px; padding: 5px 12px; }
+  .video-sentiment-row { top: auto; right: auto; left: 14px; bottom: 165px; padding: 4px 10px; }
+  .video-viewers { top: auto; right: auto; left: 14px; bottom: 140px; font-size: 11px; padding: 5px 10px; }
+
+  /* Round pill to bottom right above icons */
+  .video-round-pill { position: absolute; top: auto; bottom: 115px; right: 14px; left: auto; font-size: 9px; padding: 4px 10px; }
+
+  /* Raise comments area above the bottom controls */
+  .video-comments-area { max-width: 60%; bottom: 210px; left: 12px; }
+  .video-comment { padding: 5px 10px; }
+  .vc-text { font-size: 11px; }
+
+  .emoji-btn { width: 40px; height: 40px; font-size: 18px; border-radius: 10px; }
+  .emoji-reaction-bar { gap: 6px; }
+  .video-comment-input { height: 36px; font-size: 16px; }
+  .btn-send-comment { width: 36px; height: 36px; }
+  .btn-yield { padding: 10px 20px; font-size: 12px; }
   .opp-avatar-big { width: 90px; height: 90px; }
   .opp-avatar-big svg { width: 36px; height: 36px; }
-  .video-comments-area { max-width: 65%; bottom: 90px; left: 12px; }
-  .video-comment { padding: 5px 10px; }
-  .vc-text { font-size: 12px; }
-  .video-sentiment-row { top: 62px; right: 14px; padding: 4px 10px; }
-  .emoji-float { font-size: 24px; }
+  .emoji-float { font-size: 22px; }
 
   /* Old page-level tab-bar hidden — replaced by global MobileTabBar */
   .tab-bar { display: none !important; }
@@ -1143,4 +1159,14 @@ body {
 /* Battle page grid → single column on mobile */
 @media (max-width: 640px) {
   .battle-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Topic suggestion glow pulse */
+.suggest-glow {
+  animation: suggest-pulse 1.5s ease-in-out 2;
+  border-color: rgba(255,122,69,.35) !important;
+}
+@keyframes suggest-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,122,69,0), 0 8px 24px rgba(0,0,0,.3); border-color: rgba(255,122,69,.35); }
+  50% { box-shadow: 0 0 20px 4px rgba(255,122,69,.25), 0 8px 24px rgba(0,0,0,.3); border-color: rgba(255,122,69,.5); }
 }
