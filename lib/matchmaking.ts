@@ -27,6 +27,23 @@ export interface MatchResult {
 const ELO_RANGE = 300; // Match within 300 ELO initially
 
 /**
+ * Expire stale queue entries (older than 5 min).
+ * Called opportunistically when a user joins the queue.
+ */
+async function cleanupStaleEntries(): Promise<void> {
+  try {
+    await supabase.rpc("cleanup_stale_queue");
+  } catch {
+    // If RPC doesn't exist yet, do a direct update (less efficient but works)
+    await supabase
+      .from("matchmaking_queue")
+      .update({ status: "expired" })
+      .eq("status", "waiting")
+      .lt("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
+  }
+}
+
+/**
  * Join the matchmaking queue.
  * Returns the queue entry ID to listen for updates.
  */
@@ -37,7 +54,8 @@ export async function joinQueue(
   side: "yes" | "no",
   eloRating: number,
 ): Promise<{ queueId: string | null; error: string | null }> {
-  // Cancel any existing queue entries first
+  // Clean up stale entries from other users + cancel our own
+  await cleanupStaleEntries();
   await supabase
     .from("matchmaking_queue")
     .update({ status: "cancelled" })

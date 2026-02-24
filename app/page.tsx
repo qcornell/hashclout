@@ -100,7 +100,30 @@ function getNextPhase(phase: string): string {
 
 /* ═══ HELPERS ═══ */
 function formatTime(s: number) { return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`; }
-function calcClout(text: string) { const l = text.trim().length; return l < 30 ? 5 : l < 80 ? 8 : l < 150 ? 12 : 15; }
+/**
+ * Clout scoring: rewards substance over rambling.
+ * - Very short (<15 chars): low effort → 2
+ * - Short punchy (15-60): could be impactful → 8
+ * - Medium (60-150): solid argument range → 12-15
+ * - Long (150-300): thorough → 12 (slight diminishing)
+ * - Rambling (300+): penalized for bloat → 8
+ * Also gives bonus for question marks (engaging) and penalizes repetitive filler.
+ */
+function calcClout(text: string) {
+  const t = text.trim();
+  const l = t.length;
+
+  // Base clout by length (inverted U-curve)
+  let clout = l < 15 ? 2 : l < 60 ? 8 : l < 150 ? 15 : l < 300 ? 12 : 8;
+
+  // Bonus: asking questions shows engagement (+2)
+  if (t.includes("?")) clout += 2;
+
+  // Bonus: uses data/evidence language (+1)
+  if (/\b(study|percent|data|evidence|research|according|statistic)/i.test(t)) clout += 1;
+
+  return Math.min(18, clout);
+}
 
 function CircleTimer({ seconds, max }: { seconds: number; max: number }) {
   const r = 22, c = 2 * Math.PI * r;
@@ -187,7 +210,6 @@ export default function Home() {
 
   /* ─── video privacy ─── */
   const [cameraVisible, setCameraVisible] = useState(false); // off by default for privacy
-  const [overlaysVisible, setOverlaysVisible] = useState(false); // tap to show secondary overlays
   const [iAmPlayerAVideo, setIAmPlayerAVideo] = useState(true); // for video phase mapping
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -970,13 +992,19 @@ export default function Home() {
     });
   };
 
+  // Use refs to always read latest opponent/matchId in the callback
+  const opponentRef = useRef(opponent);
+  const matchIdRef = useRef(matchId);
+  useEffect(() => { opponentRef.current = opponent; }, [opponent]);
+  useEffect(() => { matchIdRef.current = matchId; }, [matchId]);
+
   const handleMatchmakingReady = useCallback(() => {
     // Cleanup queue subscription
     queueUnsubRef.current?.();
     queueUnsubRef.current = null;
 
-    // If we have a real opponent, set up live debate
-    if (opponent && matchId) {
+    // Read latest values from refs (avoids stale closure)
+    if (opponentRef.current && matchIdRef.current) {
       setIsLiveMatch(true);
     }
 
@@ -984,7 +1012,7 @@ export default function Home() {
     setGameState("debating");
     // Reset scroll to top on debate start
     window.scrollTo(0, 0);
-  }, [opponent, matchId]);
+  }, []);
 
   const handleMatchmakingCancel = useCallback(() => {
     // Leave queue + cleanup
@@ -1146,7 +1174,7 @@ export default function Home() {
     setCommentInput(""); setViewerCount(35); setUserSpeakTime(0); setSentimentPct(52);
     setEmojiCounts({ "👍": 0, "👎": 0, "🔥": 0, "💯": 0, "😂": 0, "🤯": 0 });
     setMatchId(null); setEloDelta(0); setXpResult(null); setAiFeedback(null); setAiProcessing(false); setMatchOutcome(null); setQueueId(null); setOpponent(null);
-    setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(false); setOverlaysVisible(false); setShowExitConfirm(false);
+    setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(false); setShowExitConfirm(false);
     setShowCustomize(false); setCustomRapidRounds(1); setCustomRoundTime(60);
     queueUnsubRef.current?.(); queueUnsubRef.current = null;
     msgUnsubRef.current?.(); msgUnsubRef.current = null;
