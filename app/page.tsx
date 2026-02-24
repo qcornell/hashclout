@@ -11,6 +11,7 @@ import { Topic, getFeaturedTopic, getRandomTopic, incrementTopicDebates } from "
 import { calculateElo, calculateTieElo, type EloResult, type TieResult } from "@/lib/elo";
 import { joinQueue, findMatch, subscribeToQueue, leaveQueue, pollForMatch, type MatchResult } from "@/lib/matchmaking";
 import { sendDebateMessage, subscribeToMessages, subscribeToMatch, finishMatch, createTypingChannel, type LiveMessage } from "@/lib/live-debate";
+import { useLiveKitRoom } from "@/lib/livekit-room";
 import { moderateMessage } from "@/lib/moderation";
 import { calculateXP, checkDailyReset, calculateStreak, type XPBreakdown } from "@/lib/xp";
 import { getAllRoundVotes } from "@/lib/round-voting";
@@ -272,6 +273,11 @@ export default function Home() {
   const [emojiCounts, setEmojiCounts] = useState<Record<string, number>>({ "👍": 0, "👎": 0, "🔥": 0, "💯": 0, "😂": 0, "🤯": 0 });
   const [userSpeakTime, setUserSpeakTime] = useState(0);
   const [sentimentPct, setSentimentPct] = useState(52);
+
+  /* ─── LiveKit ─── */
+  const livekit = useLiveKitRoom();
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
   /* ─── refs ─── */
   const arenaRef = useRef<HTMLDivElement>(null);
@@ -798,6 +804,65 @@ export default function Home() {
     }
   }, [gameState, debateFormat, videoPhase]);
 
+  // Connect to LiveKit room when entering video debate
+  useEffect(() => {
+    if (gameState !== "debating" || debateFormat !== "video" || !matchId || !user || !videoStream) return;
+    if (livekit.connected) return;
+
+    const participantName = profile?.display_name || profile?.username || "Player";
+    livekit.connect({
+      matchId,
+      participantId: user.id,
+      participantName,
+      videoStream,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, debateFormat, matchId, user, videoStream]);
+
+  // Disconnect LiveKit when debate ends
+  useEffect(() => {
+    if (gameState === "ended" || gameState === "idle") {
+      livekit.disconnect();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState]);
+
+  // Attach remote video track to the video element
+  useEffect(() => {
+    if (remoteVideoRef.current && livekit.remoteVideoTrack) {
+      const el = remoteVideoRef.current;
+      livekit.remoteVideoTrack.attach(el);
+      return () => {
+        livekit.remoteVideoTrack?.detach(el);
+      };
+    }
+  }, [livekit.remoteVideoTrack]);
+
+  // Attach remote audio track
+  useEffect(() => {
+    if (livekit.remoteAudioTrack) {
+      if (remoteAudioRef.current) {
+        const el = remoteAudioRef.current;
+        livekit.remoteAudioTrack.attach(el);
+        return () => {
+          livekit.remoteAudioTrack?.detach(el);
+        };
+      } else {
+        // No ref — attach creates a detached element automatically
+        const el = livekit.remoteAudioTrack.attach();
+        return () => {
+          el.remove();
+        };
+      }
+    }
+  }, [livekit.remoteAudioTrack]);
+
+  // Sync camera toggle with LiveKit track muting
+  useEffect(() => {
+    livekit.setCameraEnabled(cameraVisible);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraVisible]);
+
   // Determine player A/B for video when entering debate
   useEffect(() => {
     if (gameState !== "debating" || debateFormat !== "video" || !matchId || !user) return;
@@ -1236,6 +1301,7 @@ export default function Home() {
     msgUnsubRef.current?.(); msgUnsubRef.current = null;
     matchUnsubRef.current?.(); matchUnsubRef.current = null;
     typingChannelRef.current?.unsubscribe(); typingChannelRef.current = null;
+    livekit.disconnect();
     if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); setVideoStream(null); }
     // Load a fresh random topic for next round
     getRandomTopic().then(t => { if (t) setTopic(t); });
@@ -1607,19 +1673,35 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Opponent placeholder feed */}
+                {/* Opponent video feed (LiveKit remote) or placeholder fallback */}
                 <div className={`stage-feed stage-feed-opp ${showOpp ? "" : "sf-hidden"}`}>
-                  <div className="opp-placeholder-inner">
-                    <div className={`opp-audio-viz ${isOppSpeaking || isRapidFire ? "" : "viz-paused"}`}>
-                      {[...Array(7)].map((_, i) => <div key={i} className="opp-audio-bar" style={{ animationDelay: `${i * 0.12}s` }} />)}
+                  {livekit.remoteVideoTrack ? (
+                    <>
+                      <video
+                        ref={remoteVideoRef}
+                        autoPlay playsInline
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                      <div className="opp-side-label" style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)" }}>{oppSideLabel}</div>
+                      {isOppSpeaking && <div className="opp-speaking-label" style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)" }}>🎤 Speaking…</div>}
+                      {isRapidFire && <div className="opp-speaking-label" style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)" }}>⚡ Rapid Fire</div>}
+                    </>
+                  ) : (
+                    <div className="opp-placeholder-inner">
+                      <div className={`opp-audio-viz ${isOppSpeaking || isRapidFire ? "" : "viz-paused"}`}>
+                        {[...Array(7)].map((_, i) => <div key={i} className="opp-audio-bar" style={{ animationDelay: `${i * 0.12}s` }} />)}
+                      </div>
+                      <div className="opp-avatar-big"><User size={48} /></div>
+                      <div className="opp-side-label">{oppSideLabel}</div>
+                      {isOppSpeaking && <div className="opp-speaking-label">🎤 Speaking…</div>}
+                      {isRapidFire && <div className="opp-speaking-label">⚡ Rapid Fire</div>}
+                      {isCountdownPhase && showOpp && <div className="opp-speaking-label">Getting ready…</div>}
+                      {livekit.connected && !livekit.remoteVideoTrack && <div className="opp-speaking-label">Waiting for opponent&apos;s camera…</div>}
                     </div>
-                    <div className="opp-avatar-big"><User size={48} /></div>
-                    <div className="opp-side-label">{oppSideLabel}</div>
-                    {isOppSpeaking && <div className="opp-speaking-label">🎤 Speaking…</div>}
-                    {isRapidFire && <div className="opp-speaking-label">⚡ Rapid Fire</div>}
-                    {isCountdownPhase && showOpp && <div className="opp-speaking-label">Getting ready…</div>}
-                  </div>
+                  )}
                 </div>
+                {/* Hidden audio element for opponent's audio */}
+                <audio ref={remoteAudioRef} autoPlay />
 
                 {/* ROUND INTRO SPLASH */}
                 {isIntroPhase && (
