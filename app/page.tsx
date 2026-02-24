@@ -11,7 +11,7 @@ import { Topic, getFeaturedTopic, getRandomTopic, incrementTopicDebates } from "
 import { calculateElo, calculateTieElo, type EloResult, type TieResult } from "@/lib/elo";
 import { joinQueue, findMatch, subscribeToQueue, leaveQueue, pollForMatch, type MatchResult } from "@/lib/matchmaking";
 import { sendDebateMessage, subscribeToMessages, subscribeToMatch, finishMatch, createTypingChannel, type LiveMessage } from "@/lib/live-debate";
-import { useLiveKitRoom } from "@/lib/livekit-room";
+import { useLiveKitRoom, type DataMessage } from "@/lib/livekit-room";
 import { moderateMessage } from "@/lib/moderation";
 import { calculateXP, checkDailyReset, calculateStreak, type XPBreakdown } from "@/lib/xp";
 import { getAllRoundVotes } from "@/lib/round-voting";
@@ -863,6 +863,19 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraVisible]);
 
+  // LiveKit: handle incoming data messages (emojis + comments from opponent)
+  useEffect(() => {
+    livekit.onData((msg: DataMessage, _senderId: string) => {
+      if (msg.type === "emoji") {
+        addFloatingEmoji(msg.emoji);
+        setEmojiCounts(p => ({ ...p, [msg.emoji]: (p[msg.emoji] || 0) + 1 }));
+      } else if (msg.type === "comment") {
+        setVideoComments(prev => [...prev.slice(-5), { id: Date.now() + Math.random(), sender: "opponent", text: msg.text }]);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Determine player A/B for video when entering debate
   useEffect(() => {
     if (gameState !== "debating" || debateFormat !== "video" || !matchId || !user) return;
@@ -932,9 +945,9 @@ export default function Home() {
     return () => clearInterval(i);
   }, [isUserSpeaking, isRapidFire]);
 
-  // Simulated opponent emojis during user speaking (floating only, no counts)
+  // Simulated opponent emojis during user speaking (ONLY for non-live/AI matches)
   useEffect(() => {
-    if (!isUserSpeaking) return;
+    if (!isUserSpeaking || isLiveMatch) return;
     const fire = () => {
       const emoji = REACTION_EMOJIS[Math.floor(Math.random() * REACTION_EMOJIS.length)];
       addFloatingEmoji(emoji);
@@ -942,11 +955,11 @@ export default function Home() {
     const i = setInterval(fire, 2800 + Math.random() * 3200);
     const t = setTimeout(fire, 1500 + Math.random() * 2000);
     return () => { clearInterval(i); clearTimeout(t); };
-  }, [isUserSpeaking]);
+  }, [isUserSpeaking, isLiveMatch]);
 
-  // Simulated opponent comments during user speaking
+  // Simulated opponent comments during user speaking (ONLY for non-live/AI matches)
   useEffect(() => {
-    if (!isUserSpeaking) return;
+    if (!isUserSpeaking || isLiveMatch) return;
     const sendComment = () => {
       const text = OPP_COMMENTS_POOL[Math.floor(Math.random() * OPP_COMMENTS_POOL.length)];
       setVideoComments(prev => [...prev.slice(-5), { id: Date.now(), sender: "opponent", text }]);
@@ -954,17 +967,17 @@ export default function Home() {
     const t1 = setTimeout(sendComment, 6000 + Math.random() * 8000);
     const t2 = setTimeout(sendComment, 18000 + Math.random() * 12000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [isUserSpeaking]);
+  }, [isUserSpeaking, isLiveMatch]);
 
-  // Simulated audience during rapid fire
+  // Simulated audience during rapid fire (ONLY for non-live/AI matches)
   useEffect(() => {
-    if (!isRapidFire) return;
+    if (!isRapidFire || isLiveMatch) return;
     const i = setInterval(() => {
       const emoji = REACTION_EMOJIS[Math.floor(Math.random() * REACTION_EMOJIS.length)];
       addFloatingEmoji(emoji);
     }, 2000 + Math.random() * 2000);
     return () => clearInterval(i);
-  }, [isRapidFire]);
+  }, [isRapidFire, isLiveMatch]);
 
   // Viewer count simulation
   useEffect(() => {
@@ -1118,10 +1131,9 @@ export default function Home() {
     queuePollRef.current?.();
     queuePollRef.current = null;
 
-    // Read latest values from refs (avoids stale closure)
-    if (opponentRef.current && matchIdRef.current) {
-      setIsLiveMatch(true);
-    }
+    // ALWAYS set isLiveMatch true here — both players matched with a real human.
+    // Set it BEFORE gameState so effects see isLiveMatch=true on the same render.
+    setIsLiveMatch(true);
 
     soundDebateStart();
     setGameState("debating");
@@ -1175,14 +1187,19 @@ export default function Home() {
     addFloatingEmoji(emoji);
     setEmojiCounts(p => ({ ...p, [emoji]: (p[emoji] || 0) + 1 }));
     setUserClout(p => p + 1);
+    // Send to opponent via LiveKit data channel
+    if (isLiveMatch) livekit.sendData({ type: "emoji", emoji });
   };
 
   // Video: send comment
   const handleSendVideoComment = () => {
     if (!commentInput.trim()) return;
-    setVideoComments(prev => [...prev.slice(-5), { id: Date.now(), sender: "user", text: commentInput.trim() }]);
+    const text = commentInput.trim();
+    setVideoComments(prev => [...prev.slice(-5), { id: Date.now(), sender: "user", text }]);
     setUserClout(p => p + 1);
     setCommentInput("");
+    // Send to opponent via LiveKit data channel
+    if (isLiveMatch) livekit.sendData({ type: "comment", text });
   };
 
   // Text: handle typing indicator for live matches

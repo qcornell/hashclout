@@ -5,6 +5,7 @@ import {
   Room,
   RoomEvent,
   Track,
+  DataPacket_Kind,
   type RemoteTrack,
   type RemoteTrackPublication,
   type RemoteParticipant,
@@ -19,6 +20,11 @@ export interface LiveKitConnectOptions {
   videoStream: MediaStream;
 }
 
+/** Data message types sent via LiveKit data channel */
+export type DataMessage =
+  | { type: "emoji"; emoji: string }
+  | { type: "comment"; text: string };
+
 export interface UseLiveKitRoomResult {
   room: Room | null;
   remoteVideoTrack: RemoteTrack | null;
@@ -27,6 +33,8 @@ export interface UseLiveKitRoomResult {
   connect: (opts: LiveKitConnectOptions) => Promise<void>;
   disconnect: () => void;
   setCameraEnabled: (enabled: boolean) => void;
+  sendData: (msg: DataMessage) => void;
+  onData: (handler: (msg: DataMessage, senderId: string) => void) => void;
 }
 
 /**
@@ -41,6 +49,7 @@ export function useLiveKitRoom(): UseLiveKitRoomResult {
   const [connected, setConnected] = useState(false);
   const [remoteVideoTrack, setRemoteVideoTrack] = useState<RemoteTrack | null>(null);
   const [remoteAudioTrack, setRemoteAudioTrack] = useState<RemoteTrack | null>(null);
+  const dataHandlerRef = useRef<((msg: DataMessage, senderId: string) => void) | null>(null);
 
   const handleTrackSubscribed = useCallback(
     (track: RemoteTrack, _pub: RemoteTrackPublication, _participant: RemoteParticipant) => {
@@ -106,6 +115,18 @@ export function useLiveKitRoom(): UseLiveKitRoomResult {
       room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
       room.on(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
       room.on(RoomEvent.Disconnected, handleDisconnected);
+
+      // Listen for data messages (emoji, comments)
+      room.on(RoomEvent.DataReceived, (payload: Uint8Array, participant?: RemoteParticipant) => {
+        try {
+          const text = new TextDecoder().decode(payload);
+          const msg = JSON.parse(text) as DataMessage;
+          const senderId = participant?.identity || "unknown";
+          dataHandlerRef.current?.(msg, senderId);
+        } catch {
+          // ignore malformed data
+        }
+      });
 
       // 4. Connect
       try {
@@ -177,6 +198,19 @@ export function useLiveKitRoom(): UseLiveKitRoomResult {
     }
   }, []);
 
+  /** Send a data message (emoji reaction, comment) to the other participant */
+  const sendData = useCallback((msg: DataMessage) => {
+    const room = roomRef.current;
+    if (!room) return;
+    const encoded = new TextEncoder().encode(JSON.stringify(msg));
+    room.localParticipant.publishData(encoded, { reliable: true });
+  }, []);
+
+  /** Register a handler for incoming data messages */
+  const onData = useCallback((handler: (msg: DataMessage, senderId: string) => void) => {
+    dataHandlerRef.current = handler;
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -196,5 +230,7 @@ export function useLiveKitRoom(): UseLiveKitRoomResult {
     connect: connectToRoom,
     disconnect: disconnectFromRoom,
     setCameraEnabled,
+    sendData,
+    onData,
   };
 }
