@@ -27,13 +27,7 @@ import ForfeitGuard from "@/components/ForfeitGuard";
 type GameState = "idle" | "prompted" | "chosen" | "format-select" | "matchmaking" | "searching" | "found" | "debating" | "ended";
 type Choice = "yes" | "no" | null;
 type DebateFormat = "text" | "video" | null;
-type VideoPhase =
-  | "r1-intro" | "r1-you-countdown" | "r1-you-speaking"
-  | "r1-opp-countdown" | "r1-opp-speaking"
-  | "r2-intro" | "r2-active"
-  | "r3-intro" | "r3-opp-countdown" | "r3-opp-speaking"
-  | "r3-you-countdown" | "r3-you-speaking"
-  | null;
+type VideoPhase = string | null; // phase keys from PHASE_ORDER
 
 interface Message { id: number; sender: "user" | "opponent" | "system"; text: string; clout?: number; }
 interface FloatEmoji { id: number; emoji: string; x: number; }
@@ -71,22 +65,38 @@ const NO_SIDE_RESPONSES = [
   "Stability and proven systems matter. We shouldn't tear things down without a better plan.",
 ];
 
+/**
+ * Video phase system:
+ * - "a" phases = Player A's turn, "b" phases = Player B's turn
+ * - Each client maps these to "you" or "opp" based on whether they are player A or B
+ * - This ensures both clients agree on the phase order even in live 1v1
+ *
+ * Canonical order (shared between both players):
+ *   R1: intro → a-countdown → a-speaking → b-countdown → b-speaking
+ *   R2: intro → active (both)
+ *   R3: intro → b-countdown → b-speaking → a-countdown → a-speaking (opponent first, you last)
+ */
 const PHASE_DURATIONS: Record<string, number> = {
-  "r1-intro": 3, "r1-you-countdown": 5, "r1-you-speaking": 60,
-  "r1-opp-countdown": 3, "r1-opp-speaking": 60,
+  "r1-intro": 3, "r1-a-countdown": 5, "r1-a-speaking": 60,
+  "r1-b-countdown": 3, "r1-b-speaking": 60,
   "r2-intro": 3, "r2-active": 120,
-  "r3-intro": 3, "r3-you-countdown": 5, "r3-you-speaking": 60,
-  "r3-opp-countdown": 3, "r3-opp-speaking": 60,
+  "r3-intro": 3, "r3-b-countdown": 5, "r3-b-speaking": 60,
+  "r3-a-countdown": 3, "r3-a-speaking": 60,
 };
 
-const PHASE_NEXT: Record<string, string> = {
-  "r1-intro": "r1-you-countdown", "r1-you-countdown": "r1-you-speaking",
-  "r1-you-speaking": "r1-opp-countdown", "r1-opp-countdown": "r1-opp-speaking",
-  "r1-opp-speaking": "r2-intro", "r2-intro": "r2-active",
-  "r2-active": "r3-intro", "r3-intro": "r3-opp-countdown",
-  "r3-opp-countdown": "r3-opp-speaking", "r3-opp-speaking": "r3-you-countdown",
-  "r3-you-countdown": "r3-you-speaking", "r3-you-speaking": "END",
-};
+const PHASE_ORDER: string[] = [
+  "r1-intro", "r1-a-countdown", "r1-a-speaking",
+  "r1-b-countdown", "r1-b-speaking",
+  "r2-intro", "r2-active",
+  "r3-intro", "r3-b-countdown", "r3-b-speaking",
+  "r3-a-countdown", "r3-a-speaking",
+];
+
+function getNextPhase(phase: string): string {
+  const idx = PHASE_ORDER.indexOf(phase);
+  if (idx === -1 || idx >= PHASE_ORDER.length - 1) return "END";
+  return PHASE_ORDER[idx + 1];
+}
 
 /* ═══ HELPERS ═══ */
 function formatTime(s: number) { return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`; }
@@ -178,6 +188,7 @@ export default function Home() {
   /* ─── video privacy ─── */
   const [cameraVisible, setCameraVisible] = useState(false); // off by default for privacy
   const [overlaysVisible, setOverlaysVisible] = useState(false); // tap to show secondary overlays
+  const [iAmPlayerAVideo, setIAmPlayerAVideo] = useState(true); // for video phase mapping
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   /* ─── custom debate settings (unlocked at 1M clout or 10K followers) ─── */
@@ -259,20 +270,25 @@ export default function Home() {
   const topicDesc = topic?.description || "";
   const topicReady = !topicLoading && !!topic;
 
-  // Video phase helpers
-  const isIntroPhase = ["r1-intro", "r2-intro", "r3-intro"].includes(videoPhase || "");
-  const isCountdownPhase = ["r1-you-countdown", "r1-opp-countdown", "r3-you-countdown", "r3-opp-countdown"].includes(videoPhase || "");
-  const isUserSpeaking = ["r1-you-speaking", "r3-you-speaking"].includes(videoPhase || "");
-  const isOppSpeaking = ["r1-opp-speaking", "r3-opp-speaking"].includes(videoPhase || "");
-  const isRapidFire = videoPhase === "r2-active";
+  // Video phase helpers — map canonical A/B phases to user/opp based on which player we are
+  const myLetter = iAmPlayerAVideo ? "a" : "b";
+  const oppLetter = iAmPlayerAVideo ? "b" : "a";
+  const vp = videoPhase || "";
+  const isIntroPhase = vp.endsWith("-intro");
+  const isMyCountdown = vp.endsWith(`-${myLetter}-countdown`);
+  const isOppCountdown = vp.endsWith(`-${oppLetter}-countdown`);
+  const isCountdownPhase = isMyCountdown || isOppCountdown;
+  const isUserSpeaking = vp.endsWith(`-${myLetter}-speaking`);
+  const isOppSpeaking = vp.endsWith(`-${oppLetter}-speaking`);
+  const isRapidFire = vp === "r2-active";
   const isActivePhase = isUserSpeaking || isOppSpeaking || isRapidFire;
-  const showSelf = ["r1-you-countdown", "r1-you-speaking", "r3-you-countdown", "r3-you-speaking"].includes(videoPhase || "");
-  const showOpp = ["r1-opp-countdown", "r1-opp-speaking", "r2-active", "r3-opp-countdown", "r3-opp-speaking"].includes(videoPhase || "");
+  const showSelf = isMyCountdown || isUserSpeaking;
+  const showOpp = isOppCountdown || isOppSpeaking || isRapidFire;
 
   const getRoundInfo = () => {
     if (!videoPhase) return { num: 1, title: "OPENING STATEMENTS", desc: "1 minute each — opponent is muted" };
-    if (videoPhase.startsWith("r1")) return { num: 1, title: "OPENING STATEMENTS", desc: "1 minute each — opponent is muted" };
-    if (videoPhase.startsWith("r2")) return { num: 2, title: "RAPID FIRE", desc: "Both mics active — 2 minutes" };
+    if (vp.startsWith("r1")) return { num: 1, title: "OPENING STATEMENTS", desc: "1 minute each — opponent is muted" };
+    if (vp.startsWith("r2")) return { num: 2, title: "RAPID FIRE", desc: "Both mics active — 2 minutes" };
     return { num: 3, title: "CLOSING STATEMENTS", desc: "1 minute each — make your final case" };
   };
   const roundInfo = getRoundInfo();
@@ -368,7 +384,21 @@ export default function Home() {
 
   /* ═══ SAVE MATCH RESULTS + XP + ELO ═══ */
   useEffect(() => {
-    if (gameState !== "ended" || !user || !matchId) return;
+    if (gameState !== "ended" || !user) return;
+
+    // If no matchId (shouldn't happen now, but safety), create one for tracking
+    if (!matchId) {
+      (async () => {
+        if (topic) {
+          const { data: m } = await supabase.from("matches").insert({
+            mode: "debate", topic: topic.title, player_a: user.id, player_b: null, status: "finished",
+            finished_at: new Date().toISOString(), winner: userClout > opponentClout ? user.id : null,
+          }).select().single();
+          if (m) setMatchId(m.id);
+        }
+      })();
+      return; // will re-trigger when matchId is set
+    }
 
     // For live matches with spectators, use vote-based winner.
     // For AI matches, fall back to clout.
@@ -716,18 +746,26 @@ export default function Home() {
     }
   }, [gameState, debateFormat, videoPhase]);
 
+  // Determine player A/B for video when entering debate
+  useEffect(() => {
+    if (gameState !== "debating" || debateFormat !== "video" || !matchId || !user) return;
+    supabase.from("matches").select("player_a").eq("id", matchId).single().then(({ data }) => {
+      if (data) setIAmPlayerAVideo(data.player_a === user.id);
+    });
+  }, [gameState, debateFormat, matchId, user]);
+
   // Phase timer & auto-advance + sound effects
   useEffect(() => {
     if (gameState !== "debating" || debateFormat !== "video" || !videoPhase) return;
     const dur = PHASE_DURATIONS[videoPhase] || 0;
     setPhaseTimer(dur);
 
-    // Play sounds on phase entry
-    if (["r1-intro", "r2-intro", "r3-intro"].includes(videoPhase)) {
+    // Play sounds on phase entry (use derived booleans)
+    if (videoPhase.endsWith("-intro")) {
       soundRoundTransition();
-    } else if (["r1-you-countdown", "r3-you-countdown"].includes(videoPhase)) {
+    } else if (videoPhase.endsWith(`-${myLetter}-countdown`)) {
       soundYourTurn();
-    } else if (["r1-opp-countdown", "r3-opp-countdown"].includes(videoPhase)) {
+    } else if (videoPhase.endsWith(`-${oppLetter}-countdown`)) {
       soundOppTurn();
     }
 
@@ -741,11 +779,11 @@ export default function Home() {
 
         if (prev <= 1) {
           clearInterval(interval);
-          const next = PHASE_NEXT[videoPhase];
+          const next = getNextPhase(videoPhase);
           if (next === "END") {
             setTimeout(() => { setGameState("ended"); setVideoPhase(null); }, 0);
-          } else if (next) {
-            setTimeout(() => setVideoPhase(next as VideoPhase), 0);
+          } else {
+            setTimeout(() => setVideoPhase(next), 0);
           }
           return 0;
         }
@@ -753,10 +791,9 @@ export default function Home() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [videoPhase, gameState, debateFormat]);
+  }, [videoPhase, gameState, debateFormat, myLetter, oppLetter]);
 
-  // Opponent auto-yield — removed. Let the full 60s timer run out naturally.
-  // The phase timer effect already handles advancing when phaseTimer hits 0.
+  // No opponent auto-yield — full timer runs for all phases.
 
   // Auto clout during speaking
   useEffect(() => {
@@ -979,9 +1016,9 @@ export default function Home() {
   // Video: yield remaining time
   const handleYield = () => {
     if (!videoPhase) return;
-    const next = PHASE_NEXT[videoPhase];
+    const next = getNextPhase(videoPhase);
     if (next === "END") { setGameState("ended"); setVideoPhase(null); }
-    else if (next) setVideoPhase(next as VideoPhase);
+    else setVideoPhase(next);
   };
 
   // Video: send emoji reaction
@@ -1272,14 +1309,32 @@ export default function Home() {
             matched={!!opponent}
             onReady={handleMatchmakingReady}
             onCancel={handleMatchmakingCancel}
-            onAIFallback={() => {
-              // Cancel queue, proceed to debate with AI
+            onAIFallback={async () => {
+              // Cancel queue, create a match record for AI, proceed to debate
               if (queueId) leaveQueue(queueId);
               queueUnsubRef.current?.();
               queueUnsubRef.current = null;
               setQueueId(null);
               setOpponent(null);
               setIsLiveMatch(false);
+
+              // Create a match record so XP/ELO/AI pipeline all work
+              if (user && topic) {
+                const { data: aiMatch } = await supabase
+                  .from("matches")
+                  .insert({
+                    mode: "debate",
+                    topic: topic.title,
+                    player_a: user.id,
+                    player_b: null,
+                    status: "live",
+                    round: "opening",
+                  })
+                  .select()
+                  .single();
+                if (aiMatch) setMatchId(aiMatch.id);
+              }
+
               soundDebateStart();
               setGameState("debating");
               window.scrollTo(0, 0);

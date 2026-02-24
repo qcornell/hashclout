@@ -94,7 +94,7 @@ export async function findMatch(
 
   if (!candidates || candidates.length === 0) {
     // Widen search: any side, same topic
-    const { data: wider } = await supabase
+    const { data: sameTopicAny } = await supabase
       .from("matchmaking_queue")
       .select("*")
       .eq("status", "waiting")
@@ -104,8 +104,24 @@ export async function findMatch(
       .order("created_at", { ascending: true })
       .limit(1);
 
-    if (!wider || wider.length === 0) return null;
-    return await createMatchFromQueue(queueId, userId, wider[0]);
+    if (sameTopicAny && sameTopicAny.length > 0) {
+      return await createMatchFromQueue(queueId, userId, sameTopicAny[0]);
+    }
+
+    // Widest search: any topic, any side, same format, within ELO
+    const { data: anyTopic } = await supabase
+      .from("matchmaking_queue")
+      .select("*")
+      .eq("status", "waiting")
+      .eq("format", format)
+      .neq("user_id", userId)
+      .gte("elo_rating", eloRating - ELO_RANGE)
+      .lte("elo_rating", eloRating + ELO_RANGE)
+      .order("created_at", { ascending: true })
+      .limit(1);
+
+    if (!anyTopic || anyTopic.length === 0) return null;
+    return await createMatchFromQueue(queueId, userId, anyTopic[0]);
   }
 
   return await createMatchFromQueue(queueId, userId, candidates[0]);
