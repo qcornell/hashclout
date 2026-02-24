@@ -7,8 +7,8 @@
  * - Floor: 100 (can't drop below)
  */
 
-const K_NEW = 40;      // Higher K for new players = faster calibration
-const K_ESTABLISHED = 28;
+const K_NEW = 32;      // Higher K for new/ranked — faster calibration
+const K_ESTABLISHED = 24;
 const BATTLE_THRESHOLD = 20; // "new" until this many battles
 const ELO_FLOOR = 100;
 

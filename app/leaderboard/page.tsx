@@ -13,6 +13,7 @@ type Player = {
   losses: number
   win_streak: number
   total_battles: number
+  xp_total: number
 }
 
 function getTier(elo: number) {
@@ -90,6 +91,9 @@ export default function LeaderboardPage() {
                 <div style={s.podiumUser}>@{top3[0].username}</div>
                 <div style={{ ...s.podiumElo, color: '#fbbf24', fontSize: 28, textShadow: '0 0 20px rgba(251,191,36,.3)' }}>{top3[0].elo_rating}</div>
                 <div style={s.podiumRecord}>{top3[0].wins}W - {top3[0].losses}L</div>
+                {top3[0].xp_total > 0 && (
+                  <div style={{ color: '#fbbf24', fontSize: 11, fontWeight: 800, marginTop: 4 }}>{top3[0].xp_total.toLocaleString()} XP</div>
+                )}
                 {top3[0].win_streak > 0 && (
                   <div style={{ color: '#ff7a45', fontSize: 12, fontWeight: 700, marginTop: 4 }}>🔥 {top3[0].win_streak} streak</div>
                 )}

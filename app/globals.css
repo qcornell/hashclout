@@ -977,7 +977,7 @@ body {
 /* ══════════════════════════════════════════════════
    RESULTS
    ══════════════════════════════════════════════════ */
-.results-view { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 20px; animation: view-fade 0.6s ease; }
+.results-view { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; flex: 1; padding: 20px; animation: view-fade 0.6s ease; overflow-y: auto; }
 .results-card {
   width: 100%; max-width: 480px; padding: 44px 40px; border-radius: 22px;
   background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.10);
@@ -1108,14 +1108,7 @@ body {
   .mic-status, .video-sentiment-row, .video-viewers { 
     display: none;
   }
-  .video-overlays-visible .mic-status,
-  .video-overlays-visible .video-sentiment-row,
-  .video-overlays-visible .video-viewers {
-    display: flex;
-  }
-  .video-overlays-visible .mic-status { top: 58px; right: auto; left: 14px; font-size: 9px; padding: 4px 10px; }
-  .video-overlays-visible .video-sentiment-row { top: 84px; right: auto; left: 14px; padding: 3px 8px; }
-  .video-overlays-visible .video-viewers { top: 108px; right: auto; left: 14px; font-size: 10px; padding: 3px 8px; }
+  /* Mic, sentiment, viewers — hidden on mobile for now */
 
   /* Comments always visible on mobile — compact at top left */
   .video-comments-area { display: flex; top: 60px; bottom: auto; left: 10px; max-width: 55%; }

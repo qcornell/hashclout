@@ -15,6 +15,13 @@ export interface Profile {
   losses: number;
   win_streak: number;
   total_battles: number;
+  xp_total: number;
+  daily_debate_count: number;
+  last_debate_date: string | null;
+  streak_count: number;
+  strike_count: number;
+  followers_count: number;
+  following_count: number;
   created_at: string;
 }
 

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Zap, Clock, Check, Swords, RotateCcw, Users, Flame, Shield } from 'lucide-react';
+import { soundMatchFound, soundCountdownTick, soundGo } from '@/lib/sounds';
 
 const SEARCH_STEPS = [
   { t: 0, msg: 'Entering queue…' },
@@ -224,6 +225,7 @@ export default function MatchmakingQueue({
 
   useEffect(() => {
     if (phase !== 'found') return;
+    soundMatchFound();
     setOppRevealed(false);
     const r = setTimeout(() => setOppRevealed(true), 500);
     const n = setTimeout(() => setPhase('countdown'), 2800);
@@ -233,14 +235,16 @@ export default function MatchmakingQueue({
   useEffect(() => {
     if (phase !== 'countdown') return;
     setCountdown(3);
-    const a = setTimeout(() => setCountdown(2), 1000);
-    const b = setTimeout(() => setCountdown(1), 2000);
+    soundCountdownTick();
+    const a = setTimeout(() => { setCountdown(2); soundCountdownTick(); }, 1000);
+    const b = setTimeout(() => { setCountdown(1); soundCountdownTick(); }, 2000);
     const c = setTimeout(() => setPhase('launching'), 3000);
     return () => { clearTimeout(a); clearTimeout(b); clearTimeout(c); };
   }, [phase]);
 
   useEffect(() => {
     if (phase !== 'launching') return;
+    soundGo();
     const t = setTimeout(() => { setPhase('done'); onReady(); }, 1800);
     return () => clearTimeout(t);
   }, [phase, onReady]);

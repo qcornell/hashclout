@@ -12,6 +12,15 @@ import { calculateElo, calculateTieElo, type EloResult, type TieResult } from "@
 import { joinQueue, findMatch, subscribeToQueue, leaveQueue, type MatchResult } from "@/lib/matchmaking";
 import { sendDebateMessage, subscribeToMessages, subscribeToMatch, finishMatch, createTypingChannel, type LiveMessage } from "@/lib/live-debate";
 import { moderateMessage } from "@/lib/moderation";
+import { calculateXP, checkDailyReset, calculateStreak, type XPBreakdown } from "@/lib/xp";
+import { getAllRoundVotes } from "@/lib/round-voting";
+import {
+  initAudio, soundMatchFound, soundCountdownTick, soundGo, soundRoundTransition,
+  soundYourTurn, soundOppTurn, soundTimerWarning, soundTimerCritical,
+  soundMessageSent, soundMessageReceived, soundEmojiReact,
+  soundVictory, soundDefeat, soundTie, soundXPEarned, soundDebateStart,
+  soundClick, soundLockIn,
+} from "@/lib/sounds";
 import ForfeitGuard from "@/components/ForfeitGuard";
 
 /* ═══ TYPES ═══ */
@@ -22,8 +31,8 @@ type VideoPhase =
   | "r1-intro" | "r1-you-countdown" | "r1-you-speaking"
   | "r1-opp-countdown" | "r1-opp-speaking"
   | "r2-intro" | "r2-active"
-  | "r3-intro" | "r3-you-countdown" | "r3-you-speaking"
-  | "r3-opp-countdown" | "r3-opp-speaking"
+  | "r3-intro" | "r3-opp-countdown" | "r3-opp-speaking"
+  | "r3-you-countdown" | "r3-you-speaking"
   | null;
 
 interface Message { id: number; sender: "user" | "opponent" | "system"; text: string; clout?: number; }
@@ -74,9 +83,9 @@ const PHASE_NEXT: Record<string, string> = {
   "r1-intro": "r1-you-countdown", "r1-you-countdown": "r1-you-speaking",
   "r1-you-speaking": "r1-opp-countdown", "r1-opp-countdown": "r1-opp-speaking",
   "r1-opp-speaking": "r2-intro", "r2-intro": "r2-active",
-  "r2-active": "r3-intro", "r3-intro": "r3-you-countdown",
-  "r3-you-countdown": "r3-you-speaking", "r3-you-speaking": "r3-opp-countdown",
-  "r3-opp-countdown": "r3-opp-speaking", "r3-opp-speaking": "END",
+  "r2-active": "r3-intro", "r3-intro": "r3-opp-countdown",
+  "r3-opp-countdown": "r3-opp-speaking", "r3-opp-speaking": "r3-you-countdown",
+  "r3-you-countdown": "r3-you-speaking", "r3-you-speaking": "END",
 };
 
 /* ═══ HELPERS ═══ */
@@ -153,8 +162,11 @@ export default function Home() {
   const [topic, setTopic] = useState<Topic | null>(null);
   const [topicLoading, setTopicLoading] = useState(true);
 
-  /* ─── elo result ─── */
+  /* ─── elo + xp result ─── */
   const [eloDelta, setEloDelta] = useState<number>(0);
+  const [xpResult, setXpResult] = useState<XPBreakdown | null>(null);
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
+  const [aiProcessing, setAiProcessing] = useState(false);
 
   /* ─── topic suggestion ─── */
   const [suggestionInput, setSuggestionInput] = useState("");
@@ -351,17 +363,47 @@ export default function Home() {
     return () => clearInterval(i);
   }, []);
 
-  /* ═══ SAVE MATCH RESULTS ═══ */
+  /* ═══ SAVE MATCH RESULTS + XP + ELO ═══ */
   useEffect(() => {
     if (gameState !== "ended" || !user || !matchId) return;
-    const won = userClout > opponentClout;
-    const tied = userClout === opponentClout;
+
+    // For live matches with spectators, use vote-based winner.
+    // For AI matches, fall back to clout.
+    (async () => {
+    let won = userClout > opponentClout;
+    let tied = userClout === opponentClout;
+    let realVotePct = won ? 65 : 35; // default for AI matches
+
+    if (isLiveMatch && opponent) {
+      // Fetch actual votes
+      try {
+        const allVotes = await getAllRoundVotes(matchId);
+        let userVotes = 0;
+        let oppVotes = 0;
+        for (const roundVotes of Object.values(allVotes)) {
+          userVotes += roundVotes[user.id] || 0;
+          oppVotes += roundVotes[opponent.opponentId] || 0;
+        }
+        const totalVotes = userVotes + oppVotes;
+        if (totalVotes > 0) {
+          realVotePct = Math.round((userVotes / totalVotes) * 100);
+          won = userVotes > oppVotes;
+          tied = userVotes === oppVotes;
+        }
+      } catch {}
+    }
+
+    // Play result sounds
+    if (won) soundVictory();
+    else if (tied) soundTie();
+    else soundDefeat();
+    setTimeout(() => soundXPEarned(), 1200);
 
     // Update match record
     supabase.from("matches").update({
       status: "finished",
       finished_at: new Date().toISOString(),
-      winner: won ? user.id : null,
+      winner: won ? user.id : (isLiveMatch && opponent && !tied) ? opponent.opponentId : null,
     }).eq("id", matchId).then(() => {});
 
     // Calculate ELO — use real opponent data if available, else simulated
@@ -370,7 +412,9 @@ export default function Home() {
 
     if (profile) {
       let delta = 0;
-      const updates: Record<string, number> = {
+
+      // --- ELO ---
+      const updates: Record<string, any> = {
         total_battles: profile.total_battles + 1,
       };
 
@@ -395,10 +439,93 @@ export default function Home() {
 
       setEloDelta(delta);
 
+      // --- XP ---
+      // Check daily reset
+      const shouldReset = checkDailyReset((profile as any).last_debate_date);
+      const dailyCount = shouldReset ? 0 : ((profile as any).daily_debate_count || 0);
+      const streak = calculateStreak((profile as any).last_debate_date, (profile as any).streak_count || 0);
+
+      const xp = calculateXP({
+        isWinner: won,
+        isLoser: !won && !tied,
+        isTie: tied,
+        isForfeit: false,
+        votePercentage: won ? realVotePct : 0,
+        aiQualityBonus: 0, // Will be updated by AI pipeline
+        dailyDebateCount: dailyCount,
+        streakDays: streak,
+      });
+
+      setXpResult(xp);
+
+      // Update XP + daily tracking
+      updates.xp_total = ((profile as any).xp_total || 0) + xp.finalXP;
+      updates.daily_debate_count = dailyCount + 1;
+      updates.last_debate_date = new Date().toISOString();
+      updates.streak_count = streak;
+
+      // Store XP breakdown on match
+      supabase.from("matches").update({
+        xp_player_a: xp.finalXP,
+        xp_breakdown_a: xp,
+      }).eq("id", matchId).then(() => {});
+
       supabase.from("profiles").update(updates).eq("id", user.id).then(() => {
         refreshProfile();
       });
+
+      // --- AI Pipeline (async, non-blocking) ---
+      setAiProcessing(true);
+      fetch("/api/ai-pipeline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId }),
+      })
+        .then(r => r.json())
+        .then(async (data) => {
+          setAiProcessing(false);
+          if (data.scores && data.ai_quality_bonus > 0) {
+            // Re-calculate XP with AI bonus
+            const xpWithAI = calculateXP({
+              isWinner: won,
+              isLoser: !won && !tied,
+              isTie: tied,
+              isForfeit: false,
+              votePercentage: won ? realVotePct : 0,
+              aiQualityBonus: data.ai_quality_bonus,
+              dailyDebateCount: dailyCount,
+              streakDays: streak,
+            });
+            const xpDiff = xpWithAI.finalXP - xp.finalXP;
+            if (xpDiff > 0) {
+              setXpResult(xpWithAI);
+              // Add the AI bonus XP
+              await supabase.from("profiles").update({
+                xp_total: ((profile as any).xp_total || 0) + xpWithAI.finalXP,
+              }).eq("id", user.id);
+              await supabase.from("matches").update({
+                xp_player_a: xpWithAI.finalXP,
+                xp_breakdown_a: xpWithAI,
+              }).eq("id", matchId);
+              refreshProfile();
+            }
+          }
+          // Fetch AI feedback
+          const { data: updatedMatch } = await supabase
+            .from("matches")
+            .select("ai_feedback_a, ai_feedback_b")
+            .eq("id", matchId)
+            .single();
+          if (updatedMatch) {
+            // We are player A (the one who created/joined first)
+            setAiFeedback(updatedMatch.ai_feedback_a || updatedMatch.ai_feedback_b || null);
+          }
+        })
+        .catch(() => {
+          setAiProcessing(false);
+        });
     }
+    })(); // end async IIFE
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState]);
 
@@ -413,6 +540,7 @@ export default function Home() {
       const mod = await moderateMessage(msg.content);
       const displayText = mod.flagged ? "[Message removed by content filter]" : msg.content;
       const clout = mod.flagged ? 0 : calcClout(msg.content);
+      soundMessageReceived();
       setMessages(prev => [...prev, { id: Date.now() + Math.random(), sender: "opponent", text: displayText, clout }]);
       if (!mod.flagged) setOpponentClout(p => p + clout);
       setOppTyping(false);
@@ -481,11 +609,13 @@ export default function Home() {
   /* ═══ TEXT DEBATE EFFECTS ═══ */
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, opponentTyping, oppTyping]);
 
-  // Timer — runs for both live and simulated
+  // Timer — runs for both live and simulated + warning sounds
   useEffect(() => {
     if (gameState !== "debating" || debateFormat !== "text") return;
     const t = setInterval(() => {
       setDebateTimer(prev => {
+        if (prev === 31) soundTimerWarning();
+        if (prev >= 2 && prev <= 4) soundTimerCritical();
         if (prev <= 1) {
           clearInterval(t);
           // End the match
@@ -530,11 +660,13 @@ export default function Home() {
         .then(data => {
           const resp = data.reply || (choice === "yes" ? NO_SIDE_RESPONSES : YES_SIDE_RESPONSES)[0];
           const oc = calcClout(resp);
+          soundMessageReceived();
           setMessages(prev => [...prev, { id: Date.now(), sender: "opponent", text: resp, clout: oc }]);
           setOpponentClout(p => p + oc); setResponseIdx(1);
           setOpponentTyping(false); opponentTypingRef.current = false;
         })
         .catch(() => {
+          soundMessageReceived();
           const pool = choice === "yes" ? NO_SIDE_RESPONSES : YES_SIDE_RESPONSES;
           setMessages(prev => [...prev, { id: Date.now(), sender: "opponent", text: pool[0], clout: 8 }]);
           setOpponentClout(p => p + 8); setResponseIdx(1);
@@ -565,15 +697,29 @@ export default function Home() {
     }
   }, [gameState, debateFormat, videoPhase]);
 
-  // Phase timer & auto-advance
+  // Phase timer & auto-advance + sound effects
   useEffect(() => {
     if (gameState !== "debating" || debateFormat !== "video" || !videoPhase) return;
     const dur = PHASE_DURATIONS[videoPhase] || 0;
     setPhaseTimer(dur);
+
+    // Play sounds on phase entry
+    if (["r1-intro", "r2-intro", "r3-intro"].includes(videoPhase)) {
+      soundRoundTransition();
+    } else if (["r1-you-countdown", "r3-you-countdown"].includes(videoPhase)) {
+      soundYourTurn();
+    } else if (["r1-opp-countdown", "r3-opp-countdown"].includes(videoPhase)) {
+      soundOppTurn();
+    }
+
     if (dur === 0) return;
 
     const interval = setInterval(() => {
       setPhaseTimer(prev => {
+        // Timer warning sounds
+        if (prev === 11) soundTimerWarning();
+        if (prev >= 2 && prev <= 4) soundTimerCritical();
+
         if (prev <= 1) {
           clearInterval(interval);
           const next = PHASE_NEXT[videoPhase];
@@ -590,17 +736,8 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [videoPhase, gameState, debateFormat]);
 
-  // Opponent auto-yield (25-45s into their 60s)
-  useEffect(() => {
-    if (!["r1-opp-speaking", "r3-opp-speaking"].includes(videoPhase || "")) return;
-    const yieldMs = (25 + Math.random() * 20) * 1000;
-    const timeout = setTimeout(() => {
-      const next = PHASE_NEXT[videoPhase || ""];
-      if (next === "END") { setGameState("ended"); setVideoPhase(null); }
-      else if (next) setVideoPhase(next as VideoPhase);
-    }, yieldMs);
-    return () => clearTimeout(timeout);
-  }, [videoPhase]);
+  // Opponent auto-yield — removed. Let the full 60s timer run out naturally.
+  // The phase timer effect already handles advancing when phaseTimer hits 0.
 
   // Auto clout during speaking
   useEffect(() => {
@@ -700,11 +837,13 @@ export default function Home() {
 
   const handleStart = () => {
     if (gameState !== "idle") return;
+    initAudio(); // Unlock audio on first interaction
     // Require auth to play (but not while still loading)
     if (!authLoading && !user) {
       setShowAuthModal(true);
       return;
     }
+    soundClick();
     setGameState("prompted");
     if (typeof window !== "undefined" && window.innerWidth <= 768)
       setTimeout(() => arenaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
@@ -715,8 +854,10 @@ export default function Home() {
 
   const handleChoice = (side: "yes" | "no") => {
     if (gameState !== "idle" && gameState !== "prompted") return;
+    initAudio();
     // Require auth — if they skipped START and clicked YES/NO directly
     if (!authLoading && !user) { setShowAuthModal(true); return; }
+    soundLockIn();
     setChoice(side); setGameState("chosen"); setHintVisible(false);
     setTimeout(() => setGameState("format-select"), 1000);
   };
@@ -783,6 +924,7 @@ export default function Home() {
       setIsLiveMatch(true);
     }
 
+    soundDebateStart();
     setGameState("debating");
     // Reset scroll to top on debate start
     window.scrollTo(0, 0);
@@ -825,6 +967,7 @@ export default function Home() {
 
   // Video: send emoji reaction
   const handleEmojiReact = (emoji: string) => {
+    soundEmojiReact();
     addFloatingEmoji(emoji);
     setEmojiCounts(p => ({ ...p, [emoji]: (p[emoji] || 0) + 1 }));
     setUserClout(p => p + 1);
@@ -866,6 +1009,7 @@ export default function Home() {
     const clout = calcClout(text);
 
     // Add message locally
+    soundMessageSent();
     setMessages(prev => [...prev, { id: Date.now(), sender: "user", text, clout }]);
     setUserClout(p => p + clout);
     setInputValue("");
@@ -906,12 +1050,14 @@ export default function Home() {
         .then(data => {
           const resp = data.reply || NO_SIDE_RESPONSES[responseIdx % NO_SIDE_RESPONSES.length];
           const oc = calcClout(resp);
+          soundMessageReceived();
           setMessages(prev => [...prev, { id: Date.now(), sender: "opponent", text: resp, clout: oc }]);
           setOpponentClout(p => p + oc); setResponseIdx(p => p + 1);
           setOpponentTyping(false); opponentTypingRef.current = false;
         })
         .catch(() => {
           // Fallback to canned response if API fails
+          soundMessageReceived();
           const pool = choice === "yes" ? NO_SIDE_RESPONSES : YES_SIDE_RESPONSES;
           const resp = pool[responseIdx % pool.length];
           const oc = 7 + Math.floor(Math.random() * 5);
@@ -943,7 +1089,7 @@ export default function Home() {
     setVideoPhase(null); setPhaseTimer(0); setFloatingEmojis([]); setVideoComments([]);
     setCommentInput(""); setViewerCount(35); setUserSpeakTime(0); setSentimentPct(52);
     setEmojiCounts({ "👍": 0, "👎": 0, "🔥": 0, "💯": 0, "😂": 0, "🤯": 0 });
-    setMatchId(null); setEloDelta(0); setQueueId(null); setOpponent(null);
+    setMatchId(null); setEloDelta(0); setXpResult(null); setAiFeedback(null); setAiProcessing(false); setQueueId(null); setOpponent(null);
     setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(false); setOverlaysVisible(false); setShowExitConfirm(false);
     setShowCustomize(false); setCustomRapidRounds(1); setCustomRoundTime(60);
     queueUnsubRef.current?.(); queueUnsubRef.current = null;
@@ -1264,7 +1410,7 @@ export default function Home() {
           {/* ─── VIDEO DEBATE — IMMERSIVE ─── */}
           {gameState === "debating" && debateFormat === "video" && (
             <div className="video-debate">
-              <div className={`video-stage ${stageClass} ${overlaysVisible ? "video-overlays-visible" : ""}`} onClick={() => setOverlaysVisible(p => !p)}>
+              <div className={`video-stage ${stageClass}`}>
 
                 {/* Self video feed — hidden by default for privacy */}
                 <video
@@ -1335,27 +1481,7 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* SENTIMENT */}
-                {isActivePhase && (
-                  <div className="video-sentiment-row">
-                    <span className="vsent-pct vsent-yes">{Math.round(sentimentPct)}%</span>
-                    <div className="vsent-track"><div className="vsent-fill" style={{ width: `${sentimentPct}%` }} /></div>
-                    <span className="vsent-pct vsent-no">{Math.round(100 - sentimentPct)}%</span>
-                  </div>
-                )}
-
-                {/* VIEWERS — right-stacked under sentiment */}
-                {isActivePhase && (
-                  <div className="video-viewers"><Eye size={14} /><span>{viewerCount} watching</span></div>
-                )}
-
-                {/* MIC STATUS — right-stacked under viewers */}
-                {isActivePhase && !isRapidFire && (
-                  <div className="mic-status">
-                    {isUserSpeaking ? "🔇 Opponent Muted" : "🔇 Your Mic Muted"}
-                  </div>
-                )}
-                {isRapidFire && <div className="mic-status mic-active">🎤 Both Mics Active</div>}
+                {/* SENTIMENT, VIEWERS, MIC STATUS — hidden (kept in bottom bar poll instead) */}
 
                 {/* FLOATING EMOJIS */}
                 {floatingEmojis.map(fe => (
@@ -1444,11 +1570,106 @@ export default function Home() {
                 <div className={`results-verdict ${isTie ? "verdict-tie" : isWin ? "verdict-win" : "verdict-lose"}`}>
                   {isTie ? "IT'S A TIE" : isWin ? "🏆 YOU WIN!" : "OPPONENT WINS"}
                 </div>
+
+                {/* ELO + XP row */}
                 {profile && (
-                  <div style={{ fontSize: 14, fontWeight: 800, color: eloDelta > 0 ? "#22c55e" : eloDelta < 0 ? "#ff4d3d" : "rgba(255,255,255,.40)", marginBottom: 8, marginTop: -12 }}>
-                    {eloDelta > 0 ? `+${eloDelta}` : eloDelta === 0 ? "±0" : `${eloDelta}`} ELO
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 12, marginTop: -8 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: eloDelta > 0 ? "#22c55e" : eloDelta < 0 ? "#ff4d3d" : "rgba(255,255,255,.40)" }}>
+                      {eloDelta > 0 ? `+${eloDelta}` : eloDelta === 0 ? "±0" : `${eloDelta}`} ELO
+                    </div>
+                    {xpResult && (
+                      <div style={{ fontSize: 14, fontWeight: 800, color: xpResult.finalXP > 0 ? "#fbbf24" : "#ff4d3d" }}>
+                        {xpResult.finalXP > 0 ? `+${xpResult.finalXP.toLocaleString()}` : xpResult.finalXP.toLocaleString()} XP
+                      </div>
+                    )}
                   </div>
                 )}
+
+                {/* XP Breakdown */}
+                {xpResult && xpResult.finalXP > 0 && (
+                  <div style={{
+                    padding: "14px 18px", borderRadius: 14, marginBottom: 16,
+                    background: "rgba(251,191,36,.04)", border: "1px solid rgba(251,191,36,.10)",
+                    textAlign: "left",
+                  }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: "rgba(251,191,36,.5)", marginBottom: 8 }}>XP BREAKDOWN</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ color: "rgba(255,255,255,.45)" }}>Completion</span>
+                        <span style={{ fontWeight: 800, color: "rgba(255,255,255,.70)" }}>+{xpResult.base.toLocaleString()}</span>
+                      </div>
+                      {xpResult.matchResult > 0 && (
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ color: "rgba(255,255,255,.45)" }}>{isWin ? "Win Bonus" : "Participation"}</span>
+                          <span style={{ fontWeight: 800, color: isWin ? "#22c55e" : "rgba(255,255,255,.70)" }}>+{xpResult.matchResult.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {xpResult.voteMarginBonus > 0 && (
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ color: "rgba(255,255,255,.45)" }}>Vote Margin</span>
+                          <span style={{ fontWeight: 800, color: "#fbbf24" }}>+{xpResult.voteMarginBonus.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {xpResult.aiQualityBonus > 0 && (
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ color: "rgba(255,255,255,.45)" }}>Quality Bonus</span>
+                          <span style={{ fontWeight: 800, color: "#a855f7" }}>+{xpResult.aiQualityBonus.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {xpResult.diminishingMultiplier < 1 && (
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ color: "rgba(255,255,255,.30)" }}>Daily Cap</span>
+                          <span style={{ fontWeight: 700, color: "rgba(255,255,255,.30)" }}>×{xpResult.diminishingMultiplier}</span>
+                        </div>
+                      )}
+                      {xpResult.streakMultiplier > 1 && (
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ color: "rgba(255,255,255,.45)" }}>🔥 Streak Bonus</span>
+                          <span style={{ fontWeight: 800, color: "#ff7a45" }}>×{xpResult.streakMultiplier}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Feedback */}
+                {(aiFeedback || aiProcessing) && (
+                  <div style={{
+                    padding: "14px 18px", borderRadius: 14, marginBottom: 16,
+                    background: isWin ? "rgba(34,197,94,.04)" : "rgba(168,85,247,.04)",
+                    border: `1px solid ${isWin ? "rgba(34,197,94,.10)" : "rgba(168,85,247,.10)"}`,
+                    textAlign: "left",
+                  }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: isWin ? "rgba(34,197,94,.5)" : "rgba(168,85,247,.5)", marginBottom: 8 }}>
+                      🤖 AI JUDGE
+                    </div>
+                    {aiProcessing && !aiFeedback ? (
+                      <div style={{ fontSize: 12, color: "rgba(255,255,255,.35)", fontStyle: "italic" }}>Analyzing your debate...</div>
+                    ) : (
+                      <div style={{ fontSize: 13, color: "rgba(255,255,255,.75)", lineHeight: 1.6 }}>{aiFeedback}</div>
+                    )}
+                  </div>
+                )}
+
+                {/* XP Progress Bar */}
+                {profile && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.30)", marginBottom: 6 }}>
+                      <span>{((profile as any).xp_total || 0).toLocaleString()} XP</span>
+                      <span>1,000,000 XP</span>
+                    </div>
+                    <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,.06)", overflow: "hidden" }}>
+                      <div style={{
+                        height: "100%", borderRadius: 999,
+                        background: "linear-gradient(90deg, #fbbf24, #ff7a45)",
+                        width: `${Math.min(100, (((profile as any).xp_total || 0) / 1000000) * 100)}%`,
+                        transition: "width 1s ease",
+                        boxShadow: "0 0 12px rgba(251,191,36,.3)",
+                      }} />
+                    </div>
+                  </div>
+                )}
+
                 <div className="results-score-row">
                   <div className="result-score rs-user"><span className="result-score-label">{profile?.display_name || "You"}</span><span className="result-score-num">{userClout}</span><span className="result-score-sub">{userSideLabel}</span></div>
                   <div className="results-divider">VS</div>

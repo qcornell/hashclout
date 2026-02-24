@@ -181,10 +181,45 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* ELO */}
-        <div style={styles.eloCard}>
-          <div style={styles.eloNum}>{profile.elo_rating}</div>
-          <div style={styles.eloLabel}>ELO RATING</div>
+        {/* ELO + XP */}
+        <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ ...styles.eloCard, flex: 1 }}>
+            <div style={styles.eloNum}>{profile.elo_rating}</div>
+            <div style={styles.eloLabel}>ELO RATING</div>
+          </div>
+          <div style={{ ...styles.eloCard, flex: 1 }}>
+            <div style={{ ...styles.eloNum, background: "linear-gradient(135deg, #fbbf24, #ff7a45)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              {((profile as any).xp_total || 0).toLocaleString()}
+            </div>
+            <div style={styles.eloLabel}>TOTAL XP</div>
+            <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,.06)", overflow: "hidden", marginTop: 8 }}>
+              <div style={{
+                height: "100%", borderRadius: 999,
+                background: "linear-gradient(90deg, #fbbf24, #ff7a45)",
+                width: `${Math.min(100, (((profile as any).xp_total || 0) / 1000000) * 100)}%`,
+                transition: "width 1s ease",
+              }} />
+            </div>
+            <div style={{ fontSize: 9, color: "rgba(255,255,255,.20)", marginTop: 4 }}>
+              {((profile as any).xp_total || 0).toLocaleString()} / 1,000,000
+            </div>
+          </div>
+        </div>
+
+        {/* Streak + Daily */}
+        <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1, padding: "14px 16px", borderRadius: 14, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "#ff7a45" }}>
+              {(profile as any).streak_count > 0 ? `🔥 ${(profile as any).streak_count}` : "—"}
+            </div>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".1em", color: "rgba(255,255,255,.25)", marginTop: 4 }}>DAY STREAK</div>
+          </div>
+          <div style={{ flex: 1, padding: "14px 16px", borderRadius: 14, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "rgba(255,255,255,.60)" }}>
+              {(profile as any).daily_debate_count || 0}/10
+            </div>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".1em", color: "rgba(255,255,255,.25)", marginTop: 4 }}>DEBATES TODAY</div>
+          </div>
         </div>
 
         {/* Stats Grid */}
