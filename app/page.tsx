@@ -404,17 +404,35 @@ export default function Home() {
     return () => clearInterval(i);
   }, []);
 
+  // Snapshot state into refs so the save-results effect always reads fresh values
+  const userCloutRef = useRef(userClout);
+  const opponentCloutRef = useRef(opponentClout);
+  const isLiveMatchRef = useRef(isLiveMatch);
+  const profileRef = useRef(profile);
+  useEffect(() => { userCloutRef.current = userClout; }, [userClout]);
+  useEffect(() => { opponentCloutRef.current = opponentClout; }, [opponentClout]);
+  useEffect(() => { isLiveMatchRef.current = isLiveMatch; }, [isLiveMatch]);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
+
   /* ═══ SAVE MATCH RESULTS + XP + ELO ═══ */
   useEffect(() => {
     if (gameState !== "ended" || !user) return;
 
-    // If no matchId (shouldn't happen now, but safety), create one for tracking
-    if (!matchId) {
+    // Read latest values from refs to avoid stale closures
+    const curUserClout = userCloutRef.current;
+    const curOppClout = opponentCloutRef.current;
+    const curIsLive = isLiveMatchRef.current;
+    const curProfile = profileRef.current;
+    const curOpponent = opponentRef.current;
+    const curMatchId = matchIdRef.current;
+
+    // If no matchId, create one for tracking
+    if (!curMatchId) {
       (async () => {
         if (topic) {
           const { data: m } = await supabase.from("matches").insert({
             mode: "debate", topic: topic.title, player_a: user.id, player_b: null, status: "finished",
-            finished_at: new Date().toISOString(), winner: userClout > opponentClout ? user.id : null,
+            finished_at: new Date().toISOString(), winner: curUserClout > curOppClout ? user.id : null,
           }).select().single();
           if (m) setMatchId(m.id);
         }
@@ -425,27 +443,38 @@ export default function Home() {
     // For live matches with spectators, use vote-based winner.
     // For AI matches, fall back to clout.
     (async () => {
-    let won = userClout > opponentClout;
-    let tied = userClout === opponentClout;
+    // Check if match is already finalized (other client wrote first)
+    const { data: existingMatch } = await supabase.from("matches").select("status, winner, player_a").eq("id", curMatchId).single();
+    const alreadyFinished = existingMatch?.status === "finished" || existingMatch?.status === "final";
+    const iAmPlayerA = existingMatch?.player_a === user.id;
+
+    let won = curUserClout > curOppClout;
+    let tied = curUserClout === curOppClout;
     let realVotePct = won ? 65 : 35; // default for AI matches
 
-    if (isLiveMatch && opponent) {
-      // Fetch actual votes
-      try {
-        const allVotes = await getAllRoundVotes(matchId);
-        let userVotes = 0;
-        let oppVotes = 0;
-        for (const roundVotes of Object.values(allVotes)) {
-          userVotes += roundVotes[user.id] || 0;
-          oppVotes += roundVotes[opponent.opponentId] || 0;
-        }
-        const totalVotes = userVotes + oppVotes;
-        if (totalVotes > 0) {
-          realVotePct = Math.round((userVotes / totalVotes) * 100);
-          won = userVotes > oppVotes;
-          tied = userVotes === oppVotes;
-        }
-      } catch {}
+    if (curIsLive && curOpponent) {
+      if (alreadyFinished && existingMatch?.winner) {
+        // Other client already wrote the result — use their winner
+        won = existingMatch.winner === user.id;
+        tied = false;
+      } else {
+        // We're first to finish — fetch actual votes
+        try {
+          const allVotes = await getAllRoundVotes(curMatchId);
+          let userVotes = 0;
+          let oppVotes = 0;
+          for (const roundVotes of Object.values(allVotes)) {
+            userVotes += roundVotes[user.id] || 0;
+            oppVotes += roundVotes[curOpponent.opponentId] || 0;
+          }
+          const totalVotesCount = userVotes + oppVotes;
+          if (totalVotesCount > 0) {
+            realVotePct = Math.round((userVotes / totalVotesCount) * 100);
+            won = userVotes > oppVotes;
+            tied = userVotes === oppVotes;
+          }
+        } catch {}
+      }
     }
 
     // Set outcome for UI
@@ -457,51 +486,52 @@ export default function Home() {
     else soundDefeat();
     setTimeout(() => soundXPEarned(), 1200);
 
-    // Update match record
-    supabase.from("matches").update({
-      status: "finished",
-      finished_at: new Date().toISOString(),
-      winner: won ? user.id : (isLiveMatch && opponent && !tied) ? opponent.opponentId : null,
-    }).eq("id", matchId).then(() => {});
+    // Only write match status if not already finished (prevent double-write)
+    if (!alreadyFinished) {
+      supabase.from("matches").update({
+        status: "finished",
+        finished_at: new Date().toISOString(),
+        winner: won ? user.id : (curIsLive && curOpponent && !tied) ? curOpponent.opponentId : null,
+      }).eq("id", curMatchId).then(() => {});
+    }
 
     // Calculate ELO — use real opponent data if available, else simulated
-    const oppElo = opponent?.opponentElo || 1000;
+    const oppElo = curOpponent?.opponentElo || 1000;
     const oppBattles = 50; // Assume established for sim opponents
 
-    if (profile) {
+    if (curProfile) {
       let delta = 0;
 
       // --- ELO ---
       const updates: Record<string, any> = {
-        total_battles: profile.total_battles + 1,
+        total_battles: curProfile.total_battles + 1,
       };
 
       if (tied) {
-        const tie = calculateTieElo(profile.elo_rating, oppElo, profile.total_battles, oppBattles);
+        const tie = calculateTieElo(curProfile.elo_rating, oppElo, curProfile.total_battles, oppBattles);
         delta = tie.playerADelta;
         updates.elo_rating = tie.playerANewElo;
         updates.win_streak = 0;
       } else if (won) {
-        const result = calculateElo(profile.elo_rating, oppElo, profile.total_battles, oppBattles, userClout, opponentClout);
+        const result = calculateElo(curProfile.elo_rating, oppElo, curProfile.total_battles, oppBattles, curUserClout, curOppClout);
         delta = result.winnerDelta;
         updates.elo_rating = result.winnerNewElo;
-        updates.wins = profile.wins + 1;
-        updates.win_streak = profile.win_streak + 1;
+        updates.wins = curProfile.wins + 1;
+        updates.win_streak = curProfile.win_streak + 1;
       } else {
-        const result = calculateElo(oppElo, profile.elo_rating, oppBattles, profile.total_battles, opponentClout, userClout);
+        const result = calculateElo(oppElo, curProfile.elo_rating, oppBattles, curProfile.total_battles, curOppClout, curUserClout);
         delta = result.loserDelta;
         updates.elo_rating = result.loserNewElo;
-        updates.losses = profile.losses + 1;
+        updates.losses = curProfile.losses + 1;
         updates.win_streak = 0;
       }
 
       setEloDelta(delta);
 
       // --- XP ---
-      // Check daily reset
-      const shouldReset = checkDailyReset((profile as any).last_debate_date);
-      const dailyCount = shouldReset ? 0 : ((profile as any).daily_debate_count || 0);
-      const streak = calculateStreak((profile as any).last_debate_date, (profile as any).streak_count || 0);
+      const shouldReset = checkDailyReset(curProfile.last_debate_date);
+      const dailyCount = shouldReset ? 0 : (curProfile.daily_debate_count || 0);
+      const streak = calculateStreak(curProfile.last_debate_date, curProfile.streak_count || 0);
 
       const xp = calculateXP({
         isWinner: won,
@@ -509,86 +539,85 @@ export default function Home() {
         isTie: tied,
         isForfeit: false,
         votePercentage: won ? realVotePct : 0,
-        aiQualityBonus: 0, // Will be updated by AI pipeline
+        aiQualityBonus: 0,
         dailyDebateCount: dailyCount,
         streakDays: streak,
       });
 
       setXpResult(xp);
 
-      // Determine if we are player A or B in this match
-      const { data: matchRecord } = await supabase.from("matches").select("player_a").eq("id", matchId).single();
-      const iAmPlayerA = matchRecord?.player_a === user.id;
       const xpCol = iAmPlayerA ? "xp_player_a" : "xp_player_b";
       const xpBreakdownCol = iAmPlayerA ? "xp_breakdown_a" : "xp_breakdown_b";
       const feedbackCol = iAmPlayerA ? "ai_feedback_a" : "ai_feedback_b";
 
       // Update XP + daily tracking
-      updates.xp_total = ((profile as any).xp_total || 0) + xp.finalXP;
+      updates.xp_total = (curProfile.xp_total || 0) + xp.finalXP;
       updates.daily_debate_count = dailyCount + 1;
       updates.last_debate_date = new Date().toISOString();
       updates.streak_count = streak;
 
-      // Store XP breakdown on match (correct column for this player)
+      // Store XP breakdown on match
       supabase.from("matches").update({
         [xpCol]: xp.finalXP,
         [xpBreakdownCol]: xp,
-      }).eq("id", matchId).then(() => {});
+      }).eq("id", curMatchId).then(() => {});
 
       supabase.from("profiles").update(updates).eq("id", user.id).then(() => {
         refreshProfile();
       });
 
       // --- AI Pipeline (async, non-blocking) ---
-      setAiProcessing(true);
-      fetch("/api/ai-pipeline", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId }),
-      })
-        .then(r => r.json())
-        .then(async (data) => {
-          setAiProcessing(false);
-          if (data.scores && data.ai_quality_bonus > 0) {
-            // Calculate ONLY the difference from AI bonus
-            const xpWithAI = calculateXP({
-              isWinner: won,
-              isLoser: !won && !tied,
-              isTie: tied,
-              isForfeit: false,
-              votePercentage: won ? realVotePct : 0,
-              aiQualityBonus: data.ai_quality_bonus,
-              dailyDebateCount: dailyCount,
-              streakDays: streak,
-            });
-            const xpDiff = xpWithAI.finalXP - xp.finalXP;
-            if (xpDiff > 0) {
-              setXpResult(xpWithAI);
-              // Add ONLY the difference (not the full amount again)
-              const currentXp = ((profile as any).xp_total || 0) + xp.finalXP; // what we already wrote
-              await supabase.from("profiles").update({
-                xp_total: currentXp + xpDiff,
-              }).eq("id", user.id);
-              await supabase.from("matches").update({
-                [xpCol]: xpWithAI.finalXP,
-                [xpBreakdownCol]: xpWithAI,
-              }).eq("id", matchId);
-              refreshProfile();
-            }
-          }
-          // Fetch AI feedback (correct column for this player)
-          const { data: updatedMatch } = await supabase
-            .from("matches")
-            .select(feedbackCol)
-            .eq("id", matchId)
-            .single();
-          if (updatedMatch) {
-            setAiFeedback((updatedMatch as any)[feedbackCol] || null);
-          }
+      // Skip for AI-only matches (player_b is null) to save API calls
+      const isAIMatch = !curIsLive || !curOpponent;
+      if (!isAIMatch) {
+        setAiProcessing(true);
+        fetch("/api/ai-pipeline", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ matchId: curMatchId }),
         })
-        .catch(() => {
-          setAiProcessing(false);
-        });
+          .then(r => r.json())
+          .then(async (data) => {
+            setAiProcessing(false);
+            if (data.scores && data.ai_quality_bonus > 0) {
+              const xpWithAI = calculateXP({
+                isWinner: won,
+                isLoser: !won && !tied,
+                isTie: tied,
+                isForfeit: false,
+                votePercentage: won ? realVotePct : 0,
+                aiQualityBonus: data.ai_quality_bonus,
+                dailyDebateCount: dailyCount,
+                streakDays: streak,
+              });
+              const xpDiff = xpWithAI.finalXP - xp.finalXP;
+              if (xpDiff > 0) {
+                setXpResult(xpWithAI);
+                const currentXp = (curProfile.xp_total || 0) + xp.finalXP;
+                await supabase.from("profiles").update({
+                  xp_total: currentXp + xpDiff,
+                }).eq("id", user.id);
+                await supabase.from("matches").update({
+                  [xpCol]: xpWithAI.finalXP,
+                  [xpBreakdownCol]: xpWithAI,
+                }).eq("id", curMatchId);
+                refreshProfile();
+              }
+            }
+            // Fetch AI feedback
+            const { data: updatedMatch } = await supabase
+              .from("matches")
+              .select(feedbackCol)
+              .eq("id", curMatchId)
+              .single();
+            if (updatedMatch) {
+              setAiFeedback((updatedMatch as any)[feedbackCol] || null);
+            }
+          })
+          .catch(() => {
+            setAiProcessing(false);
+          });
+      }
     }
     })(); // end async IIFE
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1014,15 +1043,18 @@ export default function Home() {
     window.scrollTo(0, 0);
   }, []);
 
+  const queueIdRef = useRef(queueId);
+  useEffect(() => { queueIdRef.current = queueId; }, [queueId]);
+
   const handleMatchmakingCancel = useCallback(() => {
-    // Leave queue + cleanup
-    if (queueId) leaveQueue(queueId);
+    // Leave queue + cleanup (read from ref for latest value)
+    if (queueIdRef.current) leaveQueue(queueIdRef.current);
     queueUnsubRef.current?.();
     queueUnsubRef.current = null;
     setQueueId(null);
     setOpponent(null);
     setGameState("format-select");
-  }, [queueId]);
+  }, []);
 
   const handleFormatSelect = async (format: "text" | "video") => {
     setDebateFormat(format);
