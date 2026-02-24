@@ -22,8 +22,9 @@ DECLARE
 BEGIN
   -- Try to atomically claim the opponent's queue entry.
   -- Only succeeds if it's still 'waiting'.
+  -- We set status + matched_with but NOT match_id yet (need to create match first).
   UPDATE matchmaking_queue
-  SET status = 'matched', matched_with = p_my_user_id
+  SET status = 'claimed'
   WHERE id = p_opponent_queue_id
     AND status = 'waiting'
   RETURNING true INTO v_claimed;
@@ -38,14 +39,14 @@ BEGIN
   VALUES ('debate', p_topic, p_my_user_id, p_opponent_user_id, 'live', 'opening')
   RETURNING id INTO v_match_id;
 
-  -- Update my queue entry
+  -- Now update BOTH queue entries in one shot with all fields populated.
+  -- This ensures the Realtime listener sees match_id + matched_with together.
   UPDATE matchmaking_queue
   SET status = 'matched', match_id = v_match_id, matched_with = p_opponent_user_id
   WHERE id = p_my_queue_id;
 
-  -- Update opponent's queue entry with match_id
   UPDATE matchmaking_queue
-  SET match_id = v_match_id
+  SET status = 'matched', match_id = v_match_id, matched_with = p_my_user_id
   WHERE id = p_opponent_queue_id;
 
   RETURN v_match_id;

@@ -235,15 +235,41 @@ export function pollForMatch(
   const poll = async () => {
     if (stopped) return;
 
-    // Check if our queue entry is still waiting
+    // Check our queue entry status
     const { data: entry } = await supabase
       .from("matchmaking_queue")
-      .select("status")
+      .select("status, match_id, matched_with")
       .eq("id", queueId)
       .single();
 
-    if (!entry || entry.status !== "waiting" || stopped) return;
+    if (!entry || stopped) return;
 
+    // If we were already matched by someone else (claim_match updated our row),
+    // just read the match_id and matched_with directly — no need to findMatch again
+    if (entry.status === "matched" && entry.match_id && entry.matched_with) {
+      stopped = true;
+      // Fetch opponent profile
+      const { data: oppProfile } = await supabase
+        .from("profiles")
+        .select("username, display_name, elo_rating")
+        .eq("id", entry.matched_with)
+        .single();
+
+      onMatched({
+        matchId: entry.match_id,
+        opponentId: entry.matched_with,
+        opponentSide: side === "yes" ? "no" : "yes",
+        opponentElo: oppProfile?.elo_rating || 1000,
+        opponentUsername: oppProfile?.username || "Opponent",
+        opponentDisplayName: oppProfile?.display_name || "Opponent",
+      });
+      return;
+    }
+
+    // If no longer waiting and not matched, bail (cancelled/expired)
+    if (entry.status !== "waiting") return;
+
+    // Still waiting — try to actively find a match
     const match = await findMatch(queueId, userId, topicId, format, side, eloRating);
     if (match && !stopped) {
       stopped = true;
