@@ -210,7 +210,7 @@ export default function Home() {
   const [suggestGlow, setSuggestGlow] = useState(false);
 
   /* ─── video privacy ─── */
-  const [cameraVisible, setCameraVisible] = useState(false); // off by default for privacy
+  const [cameraVisible, setCameraVisible] = useState(true); // on by default — user can toggle off
   const [iAmPlayerAVideo, setIAmPlayerAVideo] = useState(true); // for video phase mapping
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -652,6 +652,7 @@ export default function Home() {
     // Subscribe to match status (opponent finish, etc)
     const unsubMatch = subscribeToMatch(matchId, (match: any) => {
       if (match.status === "finished") {
+        setVideoPhase(null); // Stop all phase-derived timers/intervals
         setGameState("ended");
       }
     });
@@ -1313,7 +1314,7 @@ export default function Home() {
     setCommentInput(""); setViewerCount(35); setUserSpeakTime(0); setSentimentPct(52);
     setEmojiCounts({ "👍": 0, "👎": 0, "🔥": 0, "💯": 0, "😂": 0, "🤯": 0 });
     setMatchId(null); setEloDelta(0); setXpResult(null); setAiFeedback(null); setAiProcessing(false); setMatchOutcome(null); setQueueId(null); setOpponent(null);
-    setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(false); setShowExitConfirm(false);
+    setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(true); setShowExitConfirm(false);
     setShowCustomize(false); setCustomRapidRounds(1); setCustomRoundTime(60);
     queueUnsubRef.current?.(); queueUnsubRef.current = null;
     queuePollRef.current?.(); queuePollRef.current = null;
@@ -1987,6 +1988,11 @@ export default function Home() {
           if (matchId && user) {
             finishMatch(matchId, null);
           }
+          setVideoPhase(null);
+          livekit.disconnect();
+          msgUnsubRef.current?.(); msgUnsubRef.current = null;
+          matchUnsubRef.current?.(); matchUnsubRef.current = null;
+          typingChannelRef.current?.unsubscribe(); typingChannelRef.current = null;
           handlePlayAgain();
         }}
       />
@@ -2019,6 +2025,11 @@ export default function Home() {
               <button onClick={() => {
                 setShowExitConfirm(false);
                 if (matchId && user) finishMatch(matchId, null);
+                setVideoPhase(null);
+                livekit.disconnect();
+                msgUnsubRef.current?.(); msgUnsubRef.current = null;
+                matchUnsubRef.current?.(); matchUnsubRef.current = null;
+                typingChannelRef.current?.unsubscribe(); typingChannelRef.current = null;
                 handlePlayAgain();
               }} style={{
                 padding: "11px 22px", borderRadius: 12,
