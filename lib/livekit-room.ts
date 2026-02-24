@@ -23,7 +23,8 @@ export interface LiveKitConnectOptions {
 /** Data message types sent via LiveKit data channel */
 export type DataMessage =
   | { type: "emoji"; emoji: string }
-  | { type: "comment"; text: string };
+  | { type: "comment"; text: string }
+  | { type: "phase_advance"; nextPhase: string };
 
 export interface UseLiveKitRoomResult {
   room: Room | null;

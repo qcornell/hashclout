@@ -866,7 +866,7 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraVisible]);
 
-  // LiveKit: handle incoming data messages (emojis + comments from opponent)
+  // LiveKit: handle incoming data messages (emojis, comments, phase sync)
   useEffect(() => {
     livekit.onData((msg: DataMessage, _senderId: string) => {
       if (msg.type === "emoji") {
@@ -874,6 +874,13 @@ export default function Home() {
         setEmojiCounts(p => ({ ...p, [msg.emoji]: (p[msg.emoji] || 0) + 1 }));
       } else if (msg.type === "comment") {
         setVideoComments(prev => [...prev.slice(-5), { id: Date.now() + Math.random(), sender: "opponent", text: msg.text }]);
+      } else if (msg.type === "phase_advance") {
+        // Opponent hit "Done Speaking" — advance to the same phase
+        if (msg.nextPhase === "END") {
+          setGameState("ended"); setVideoPhase(null);
+        } else {
+          setVideoPhase(msg.nextPhase);
+        }
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1176,12 +1183,17 @@ export default function Home() {
 
   const handleFallbackToText = () => { setPermissionState(null); setDebateFormat("text"); beginSearch("text"); };
 
-  // Video: yield remaining time
+  // Video: yield remaining time — syncs to opponent via LiveKit data channel
   const handleYield = () => {
     if (!videoPhase) return;
     const next = getNextPhase(videoPhase);
-    if (next === "END") { setGameState("ended"); setVideoPhase(null); }
-    else setVideoPhase(next);
+    if (next === "END") {
+      setGameState("ended"); setVideoPhase(null);
+      if (isLiveMatch) livekit.sendData({ type: "phase_advance", nextPhase: "END" });
+    } else {
+      setVideoPhase(next);
+      if (isLiveMatch) livekit.sendData({ type: "phase_advance", nextPhase: next });
+    }
   };
 
   // Video: send emoji reaction
@@ -1741,18 +1753,10 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* HUD TOP — timer centered */}
+                {/* HUD TOP — timer only, centered */}
                 {isActivePhase && (
-                  <div className="video-hud-top">
-                    <div className={`vturn-badge ${isUserSpeaking ? "vturn-you" : isRapidFire ? "vturn-rapid" : "vturn-opp"}`}>
-                      {isUserSpeaking ? "🎤 YOUR TURN" : isRapidFire ? "⚡ RAPID FIRE" : "👁 LISTENING"}
-                    </div>
-
-                    <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", top: 10 }}>
-                      <CircleTimer seconds={phaseTimer} max={phaseMax} />
-                    </div>
-
-                    <div className="video-round-pill">R{roundInfo.num}: {roundInfo.title}</div>
+                  <div className="video-hud-top" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <CircleTimer seconds={phaseTimer} max={phaseMax} />
                   </div>
                 )}
 
