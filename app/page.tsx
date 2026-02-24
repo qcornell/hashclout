@@ -633,6 +633,7 @@ export default function Home() {
   /* ═══ LIVE DEBATE SETUP ═══ */
   useEffect(() => {
     if (gameState !== "debating" || !isLiveMatch || !matchId || !user) return;
+    console.log("[LIVE] LIVE DEBATE SETUP firing — gameState:", gameState, "isLiveMatch:", isLiveMatch, "matchId:", matchId, "userId:", user.id);
 
     // Subscribe to real-time messages (with moderation on incoming)
     const unsubMsg = subscribeToMessages(matchId, async (msg: LiveMessage) => {
@@ -808,6 +809,7 @@ export default function Home() {
   useEffect(() => {
     if (gameState !== "debating" || debateFormat !== "video" || !matchId || !user || !videoStream) return;
     if (livekit.connected) return;
+    console.log("[LIVEKIT] Connecting to room for matchId:", matchId, "userId:", user.id);
 
     const participantName = profile?.display_name || profile?.username || "Player";
     livekit.connect({

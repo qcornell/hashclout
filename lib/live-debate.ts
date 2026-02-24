@@ -18,6 +18,7 @@ export async function sendDebateMessage(
   content: string,
   round?: string,
 ): Promise<LiveMessage | null> {
+  console.log("[LIVE] sendDebateMessage:", { matchId, senderId, content, round });
   const { data, error } = await supabase
     .from("match_messages")
     .insert({
@@ -29,7 +30,8 @@ export async function sendDebateMessage(
     .select()
     .single();
 
-  if (error) { console.error("Send message error:", error); return null; }
+  if (error) { console.error("[LIVE] Send message INSERT error:", error); return null; }
+  console.log("[LIVE] Message inserted successfully:", data);
   return data as LiveMessage;
 }
 
@@ -41,6 +43,7 @@ export function subscribeToMessages(
   matchId: string,
   onMessage: (msg: LiveMessage) => void,
 ): () => void {
+  console.log("[LIVE] subscribeToMessages called, matchId:", matchId);
   const channel = supabase
     .channel(`debate-${matchId}`)
     .on(
@@ -52,10 +55,13 @@ export function subscribeToMessages(
         filter: `match_id=eq.${matchId}`,
       },
       (payload) => {
+        console.log("[LIVE] Received message via Realtime:", payload.new);
         onMessage(payload.new as LiveMessage);
       },
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log("[LIVE] Messages channel status:", status, "matchId:", matchId);
+    });
 
   return () => {
     supabase.removeChannel(channel);
@@ -99,6 +105,7 @@ export function subscribeToMatch(
   matchId: string,
   onUpdate: (match: any) => void,
 ): () => void {
+  console.log("[LIVE] subscribeToMatch called, matchId:", matchId);
   const channel = supabase
     .channel(`match-status-${matchId}`)
     .on(
@@ -110,6 +117,7 @@ export function subscribeToMatch(
         filter: `id=eq.${matchId}`,
       },
       (payload) => {
+        console.log("[LIVE] Match status update:", payload.new);
         onUpdate(payload.new);
       },
     )
