@@ -167,6 +167,7 @@ export default function Home() {
   const [xpResult, setXpResult] = useState<XPBreakdown | null>(null);
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
   const [aiProcessing, setAiProcessing] = useState(false);
+  const [matchOutcome, setMatchOutcome] = useState<"win" | "lose" | "tie" | null>(null);
 
   /* ─── topic suggestion ─── */
   const [suggestionInput, setSuggestionInput] = useState("");
@@ -286,8 +287,10 @@ export default function Home() {
   else if (isRapidFire) stageClass = "stage-glow-rapid";
 
   const userMsgCount = messages.filter(m => m.sender === "user").length;
-  const isWin = userClout > opponentClout;
-  const isTie = userClout === opponentClout;
+  // matchOutcome is set by the save-results effect (async, vote-aware for live matches)
+  // Falls back to clout comparison for display before the effect runs
+  const isWin = matchOutcome === "win" || (matchOutcome === null && userClout > opponentClout);
+  const isTie = matchOutcome === "tie" || (matchOutcome === null && userClout === opponentClout);
   const totalRounds = 2 + customRapidRounds;
   const roundDuration = customRoundTime;
   const textCurrentRound = Math.max(1, totalRounds - Math.floor(debateTimer / roundDuration));
@@ -392,6 +395,9 @@ export default function Home() {
         }
       } catch {}
     }
+
+    // Set outcome for UI
+    setMatchOutcome(won ? "win" : tied ? "tie" : "lose");
 
     // Play result sounds
     if (won) soundVictory();
@@ -1089,7 +1095,7 @@ export default function Home() {
     setVideoPhase(null); setPhaseTimer(0); setFloatingEmojis([]); setVideoComments([]);
     setCommentInput(""); setViewerCount(35); setUserSpeakTime(0); setSentimentPct(52);
     setEmojiCounts({ "👍": 0, "👎": 0, "🔥": 0, "💯": 0, "😂": 0, "🤯": 0 });
-    setMatchId(null); setEloDelta(0); setXpResult(null); setAiFeedback(null); setAiProcessing(false); setQueueId(null); setOpponent(null);
+    setMatchId(null); setEloDelta(0); setXpResult(null); setAiFeedback(null); setAiProcessing(false); setMatchOutcome(null); setQueueId(null); setOpponent(null);
     setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(false); setOverlaysVisible(false); setShowExitConfirm(false);
     setShowCustomize(false); setCustomRapidRounds(1); setCustomRoundTime(60);
     queueUnsubRef.current?.(); queueUnsubRef.current = null;
