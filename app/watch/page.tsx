@@ -40,6 +40,8 @@ export default function WatchPage() {
   }, []);
 
   async function fetchLive() {
+    // Only show matches created in the last 30 minutes that are still "live"
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from("matches")
       .select(`
@@ -48,6 +50,7 @@ export default function WatchPage() {
         player_b:profiles!matches_player_b_fkey(id, username, display_name, elo_rating)
       `)
       .eq("status", "live")
+      .gte("created_at", cutoff)
       .order("created_at", { ascending: false })
       .limit(50);
 

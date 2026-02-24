@@ -574,7 +574,7 @@ export default function Home() {
       });
 
       // --- AI Pipeline (async, non-blocking) ---
-      // Skip for AI-only matches (player_b is null) to save API calls
+      // Run for ALL live matches to get AI feedback
       const isAIMatch = !curIsLive || !curOpponent;
       if (!isAIMatch) {
         setAiProcessing(true);
@@ -1753,10 +1753,16 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* HUD TOP — timer only, centered */}
+                {/* HUD TOP — turn badge left, timer centered */}
                 {isActivePhase && (
-                  <div className="video-hud-top" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                    <CircleTimer seconds={phaseTimer} max={phaseMax} />
+                  <div className="video-hud-top">
+                    <div className={`vturn-badge ${isUserSpeaking ? "vturn-you" : isRapidFire ? "vturn-rapid" : "vturn-opp"}`}>
+                      {isUserSpeaking ? "🎤 YOUR TURN" : isRapidFire ? "⚡ RAPID FIRE" : "👁 LISTENING"}
+                    </div>
+
+                    <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", top: 10 }}>
+                      <CircleTimer seconds={phaseTimer} max={phaseMax} />
+                    </div>
                   </div>
                 )}
 

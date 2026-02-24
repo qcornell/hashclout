@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     const playerB = match.player_b;
 
     // 3. Build transcript
-    const transcript = msgs.map(m => {
+    let transcript = msgs.map(m => {
       const name = m.sender_id === playerA?.id
         ? (playerA?.display_name || "Player A")
         : (playerB?.display_name || "Player B");
@@ -90,7 +90,14 @@ export async function POST(req: NextRequest) {
     let feedbackWinner = "Great debate! You made compelling arguments and earned this win. Keep that momentum going! 🏆";
     let feedbackLoser = "Close one! You showed real potential out there. Focus on addressing your opponent's points more directly next time, and you'll be taking W's in no time. 💪";
 
-    if (OPENAI_API_KEY && msgs.length > 0) {
+    // For video debates with no text messages, create a summary transcript
+    if (msgs.length === 0 && match.format === "video") {
+      const paName = playerA?.display_name || "Player A";
+      const pbName = playerB?.display_name || "Player B";
+      transcript = `[Video Debate - No text transcript available]\nTopic: ${match.topic}\nFormat: Video (3-round structured debate with opening statements, rapid fire, and closing arguments)\n${paName} vs ${pbName}\nWinner: ${match.winner === playerA?.id ? paName : match.winner === playerB?.id ? pbName : "Tie/No winner determined yet"}`;
+    }
+
+    if (OPENAI_API_KEY && (msgs.length > 0 || match.format === "video")) {
       try {
         const result = await runAIAnalysis(
           transcript,
