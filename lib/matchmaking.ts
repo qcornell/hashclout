@@ -112,39 +112,26 @@ export async function findMatch(
 }
 
 /**
- * Create a match from two queue entries.
+ * Create a match from two queue entries using atomic RPC.
+ * Prevents race conditions where both players claim each other.
  */
 async function createMatchFromQueue(
   myQueueId: string,
   myUserId: string,
   opponent: QueueEntry,
 ): Promise<MatchResult | null> {
-  // Create the match
-  const { data: match, error: matchErr } = await supabase
-    .from("matches")
-    .insert({
-      mode: "debate",
-      topic: opponent.topic_title,
-      player_a: myUserId,
-      player_b: opponent.user_id,
-      status: "live",
-      round: "opening",
-    })
-    .select()
-    .single();
+  // Use atomic RPC to claim the match — only one player can win the race
+  const { data: matchId, error: rpcErr } = await supabase
+    .rpc("claim_match", {
+      p_my_queue_id: myQueueId,
+      p_my_user_id: myUserId,
+      p_opponent_queue_id: opponent.id,
+      p_opponent_user_id: opponent.user_id,
+      p_topic: opponent.topic_title || "Debate",
+    });
 
-  if (matchErr || !match) return null;
-
-  // Update both queue entries
-  await supabase
-    .from("matchmaking_queue")
-    .update({ status: "matched", match_id: match.id, matched_with: opponent.user_id })
-    .eq("id", myQueueId);
-
-  await supabase
-    .from("matchmaking_queue")
-    .update({ status: "matched", match_id: match.id, matched_with: myUserId })
-    .eq("id", opponent.id);
+  // If RPC returns null, someone else already claimed this opponent
+  if (rpcErr || !matchId) return null;
 
   // Fetch opponent profile
   const { data: oppProfile } = await supabase
@@ -154,7 +141,7 @@ async function createMatchFromQueue(
     .single();
 
   return {
-    matchId: match.id,
+    matchId: matchId as string,
     opponentId: opponent.user_id,
     opponentSide: opponent.side,
     opponentElo: oppProfile?.elo_rating || 1000,

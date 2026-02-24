@@ -464,16 +464,23 @@ export default function Home() {
 
       setXpResult(xp);
 
+      // Determine if we are player A or B in this match
+      const { data: matchRecord } = await supabase.from("matches").select("player_a").eq("id", matchId).single();
+      const iAmPlayerA = matchRecord?.player_a === user.id;
+      const xpCol = iAmPlayerA ? "xp_player_a" : "xp_player_b";
+      const xpBreakdownCol = iAmPlayerA ? "xp_breakdown_a" : "xp_breakdown_b";
+      const feedbackCol = iAmPlayerA ? "ai_feedback_a" : "ai_feedback_b";
+
       // Update XP + daily tracking
       updates.xp_total = ((profile as any).xp_total || 0) + xp.finalXP;
       updates.daily_debate_count = dailyCount + 1;
       updates.last_debate_date = new Date().toISOString();
       updates.streak_count = streak;
 
-      // Store XP breakdown on match
+      // Store XP breakdown on match (correct column for this player)
       supabase.from("matches").update({
-        xp_player_a: xp.finalXP,
-        xp_breakdown_a: xp,
+        [xpCol]: xp.finalXP,
+        [xpBreakdownCol]: xp,
       }).eq("id", matchId).then(() => {});
 
       supabase.from("profiles").update(updates).eq("id", user.id).then(() => {
@@ -491,7 +498,7 @@ export default function Home() {
         .then(async (data) => {
           setAiProcessing(false);
           if (data.scores && data.ai_quality_bonus > 0) {
-            // Re-calculate XP with AI bonus
+            // Calculate ONLY the difference from AI bonus
             const xpWithAI = calculateXP({
               isWinner: won,
               isLoser: !won && !tied,
@@ -505,26 +512,26 @@ export default function Home() {
             const xpDiff = xpWithAI.finalXP - xp.finalXP;
             if (xpDiff > 0) {
               setXpResult(xpWithAI);
-              // Add the AI bonus XP
+              // Add ONLY the difference (not the full amount again)
+              const currentXp = ((profile as any).xp_total || 0) + xp.finalXP; // what we already wrote
               await supabase.from("profiles").update({
-                xp_total: ((profile as any).xp_total || 0) + xpWithAI.finalXP,
+                xp_total: currentXp + xpDiff,
               }).eq("id", user.id);
               await supabase.from("matches").update({
-                xp_player_a: xpWithAI.finalXP,
-                xp_breakdown_a: xpWithAI,
+                [xpCol]: xpWithAI.finalXP,
+                [xpBreakdownCol]: xpWithAI,
               }).eq("id", matchId);
               refreshProfile();
             }
           }
-          // Fetch AI feedback
+          // Fetch AI feedback (correct column for this player)
           const { data: updatedMatch } = await supabase
             .from("matches")
-            .select("ai_feedback_a, ai_feedback_b")
+            .select(feedbackCol)
             .eq("id", matchId)
             .single();
           if (updatedMatch) {
-            // We are player A (the one who created/joined first)
-            setAiFeedback(updatedMatch.ai_feedback_a || updatedMatch.ai_feedback_b || null);
+            setAiFeedback((updatedMatch as any)[feedbackCol] || null);
           }
         })
         .catch(() => {
@@ -571,10 +578,18 @@ export default function Home() {
     typingCh.subscribe();
     typingChannelRef.current = typingCh;
 
+    // Determine which player we are (A or B) by checking match record
+    // We need to know this for heartbeat + disconnect detection
+    let iAmPlayerA = true; // default, will be corrected
+    supabase.from("matches").select("player_a").eq("id", matchId).single().then(({ data }) => {
+      if (data) iAmPlayerA = data.player_a === user.id;
+    });
+
     // Heartbeat: ping every 10s so opponent knows we're still here
     const heartbeat = setInterval(() => {
+      const col = iAmPlayerA ? "player_a_last_active" : "player_b_last_active";
       supabase.from("matches").update({
-        [opponent?.opponentId === user.id ? "player_b_last_active" : "player_a_last_active"]: new Date().toISOString(),
+        [col]: new Date().toISOString(),
       }).eq("id", matchId).then(() => {});
     }, 10000);
 
@@ -584,8 +599,8 @@ export default function Home() {
       const { data: m } = await supabase.from("matches").select("player_a_last_active, player_b_last_active, status").eq("id", matchId).single();
       if (!m || m.status === "finished") return;
 
-      // Which column is the opponent?
-      const oppActive = opponent?.opponentId === m.player_a_last_active ? m.player_a_last_active : m.player_b_last_active;
+      // Read the OPPONENT's activity column (opposite of ours)
+      const oppActive = iAmPlayerA ? m.player_b_last_active : m.player_a_last_active;
       if (oppActive) {
         const lastSeen = new Date(oppActive).getTime();
         const stale = Date.now() - lastSeen > 45000; // 45s timeout
@@ -624,11 +639,9 @@ export default function Home() {
         if (prev >= 2 && prev <= 4) soundTimerCritical();
         if (prev <= 1) {
           clearInterval(t);
-          // End the match
-          if (isLiveMatch && matchId) {
-            const won = userClout > opponentClout;
-            finishMatch(matchId, won ? user?.id || null : null);
-          }
+          // Just transition to ended — the save-results effect handles
+          // winner determination (vote-based for live, clout for AI)
+          // and writing to the DB. Don't call finishMatch here.
           setGameState("ended");
           return 0;
         }
