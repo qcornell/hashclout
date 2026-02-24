@@ -9,7 +9,7 @@ import AuthModal from "@/components/AuthModal";
 import { supabase } from "@/lib/supabase";
 import { Topic, getFeaturedTopic, getRandomTopic, incrementTopicDebates } from "@/lib/topics";
 import { calculateElo, calculateTieElo, type EloResult, type TieResult } from "@/lib/elo";
-import { joinQueue, findMatch, subscribeToQueue, leaveQueue, type MatchResult } from "@/lib/matchmaking";
+import { joinQueue, findMatch, subscribeToQueue, leaveQueue, pollForMatch, type MatchResult } from "@/lib/matchmaking";
 import { sendDebateMessage, subscribeToMessages, subscribeToMatch, finishMatch, createTypingChannel, type LiveMessage } from "@/lib/live-debate";
 import { moderateMessage } from "@/lib/moderation";
 import { calculateXP, checkDailyReset, calculateStreak, type XPBreakdown } from "@/lib/xp";
@@ -225,6 +225,7 @@ export default function Home() {
   const [queueId, setQueueId] = useState<string | null>(null);
   const [opponent, setOpponent] = useState<MatchResult | null>(null);
   const queueUnsubRef = useRef<(() => void) | null>(null);
+  const queuePollRef = useRef<(() => void) | null>(null);
 
   /* ─── live debate ─── */
   const [isLiveMatch, setIsLiveMatch] = useState(false);
@@ -926,6 +927,7 @@ export default function Home() {
     return () => {
       videoStream?.getTracks().forEach(t => t.stop());
       queueUnsubRef.current?.();
+      queuePollRef.current?.();
       msgUnsubRef.current?.();
       matchUnsubRef.current?.();
       typingChannelRef.current?.unsubscribe();
@@ -996,10 +998,12 @@ export default function Home() {
         return; // MatchmakingQueue component will call onReady after animation
       }
 
-      // No immediate match — subscribe for real-time updates
+      // No immediate match — subscribe for real-time updates + poll as backup
       const unsub = subscribeToQueue(qId, async (entry) => {
         if (entry.match_id && entry.matched_with) {
-          // Someone matched with us!
+          // Someone matched with us! Stop polling.
+          queuePollRef.current?.();
+          queuePollRef.current = null;
           setMatchId(entry.match_id);
           const { data: oppProfile } = await supabase
             .from("profiles")
@@ -1018,6 +1022,21 @@ export default function Home() {
         }
       });
       queueUnsubRef.current = unsub;
+
+      // Poll every 3s as backup — Realtime can miss events
+      const stopPoll = pollForMatch(
+        qId, user.id, topic.id, fmt, choice, profile.elo_rating,
+        (match) => {
+          // Matched via polling — stop Realtime sub
+          queueUnsubRef.current?.();
+          queueUnsubRef.current = null;
+          setOpponent(match);
+          setMatchId(match.matchId);
+          if (topic.id) incrementTopicDebates(topic.id);
+        },
+        3000,
+      );
+      queuePollRef.current = stopPoll;
     });
   };
 
@@ -1028,9 +1047,11 @@ export default function Home() {
   useEffect(() => { matchIdRef.current = matchId; }, [matchId]);
 
   const handleMatchmakingReady = useCallback(() => {
-    // Cleanup queue subscription
+    // Cleanup queue subscription + polling
     queueUnsubRef.current?.();
     queueUnsubRef.current = null;
+    queuePollRef.current?.();
+    queuePollRef.current = null;
 
     // Read latest values from refs (avoids stale closure)
     if (opponentRef.current && matchIdRef.current) {
@@ -1051,6 +1072,8 @@ export default function Home() {
     if (queueIdRef.current) leaveQueue(queueIdRef.current);
     queueUnsubRef.current?.();
     queueUnsubRef.current = null;
+    queuePollRef.current?.();
+    queuePollRef.current = null;
     setQueueId(null);
     setOpponent(null);
     setGameState("format-select");
@@ -1209,6 +1232,7 @@ export default function Home() {
     setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(false); setShowExitConfirm(false);
     setShowCustomize(false); setCustomRapidRounds(1); setCustomRoundTime(60);
     queueUnsubRef.current?.(); queueUnsubRef.current = null;
+    queuePollRef.current?.(); queuePollRef.current = null;
     msgUnsubRef.current?.(); msgUnsubRef.current = null;
     matchUnsubRef.current?.(); matchUnsubRef.current = null;
     typingChannelRef.current?.unsubscribe(); typingChannelRef.current = null;
@@ -1374,6 +1398,8 @@ export default function Home() {
               if (queueId) leaveQueue(queueId);
               queueUnsubRef.current?.();
               queueUnsubRef.current = null;
+              queuePollRef.current?.();
+              queuePollRef.current = null;
               setQueueId(null);
               setOpponent(null);
               setIsLiveMatch(false);

@@ -217,6 +217,55 @@ export function subscribeToQueue(
 }
 
 /**
+ * Poll for a match every `intervalMs` until matched, cancelled, or torn down.
+ * Returns a cleanup function that stops the polling.
+ */
+export function pollForMatch(
+  queueId: string,
+  userId: string,
+  topicId: string,
+  format: string,
+  side: string,
+  eloRating: number,
+  onMatched: (match: MatchResult) => void,
+  intervalMs = 3000,
+): () => void {
+  let stopped = false;
+
+  const poll = async () => {
+    if (stopped) return;
+
+    // Check if our queue entry is still waiting
+    const { data: entry } = await supabase
+      .from("matchmaking_queue")
+      .select("status")
+      .eq("id", queueId)
+      .single();
+
+    if (!entry || entry.status !== "waiting" || stopped) return;
+
+    const match = await findMatch(queueId, userId, topicId, format, side, eloRating);
+    if (match && !stopped) {
+      stopped = true;
+      onMatched(match);
+      return;
+    }
+
+    if (!stopped) {
+      setTimeout(poll, intervalMs);
+    }
+  };
+
+  // Start first poll after one interval (immediate findMatch already ran)
+  const timer = setTimeout(poll, intervalMs);
+
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+  };
+}
+
+/**
  * Cancel a queue entry.
  */
 export async function leaveQueue(queueId: string): Promise<void> {
