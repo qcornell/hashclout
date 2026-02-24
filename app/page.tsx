@@ -452,7 +452,7 @@ export default function Home() {
     (async () => {
     // Check if match is already finalized (other client wrote first)
     const { data: existingMatch } = await supabase.from("matches").select("status, winner, player_a").eq("id", curMatchId).single();
-    const alreadyFinished = existingMatch?.status === "finished" || existingMatch?.status === "final";
+    let alreadyFinished = existingMatch?.status === "finished" || existingMatch?.status === "final";
     const iAmPlayerA = existingMatch?.player_a === user.id;
 
     let won = curUserClout > curOppClout;
@@ -463,9 +463,10 @@ export default function Home() {
       if (alreadyFinished && existingMatch?.winner) {
         // Other client already wrote the result — use their winner
         won = existingMatch.winner === user.id;
-        tied = false;
+        tied = existingMatch.winner === null;
       } else {
-        // We're first to finish — fetch actual votes
+        // We're first to finish — try vote-based winner
+        let voteDetermined = false;
         try {
           const allVotes = await getAllRoundVotes(curMatchId);
           let userVotes = 0;
@@ -479,8 +480,34 @@ export default function Home() {
             realVotePct = Math.round((userVotes / totalVotesCount) * 100);
             won = userVotes > oppVotes;
             tied = userVotes === oppVotes;
+            voteDetermined = true;
           }
         } catch {}
+
+        // No votes — only Player A (the authority) determines winner by clout.
+        // Player B waits briefly for Player A to write, then reads the result.
+        if (!voteDetermined) {
+          if (iAmPlayerA) {
+            // Player A is the authority — use clout to determine winner
+            won = curUserClout > curOppClout;
+            tied = curUserClout === curOppClout;
+          } else {
+            // Player B — wait a moment for Player A to write the result, then read it
+            await new Promise(r => setTimeout(r, 1500));
+            const { data: freshMatch } = await supabase.from("matches").select("status, winner").eq("id", curMatchId).single();
+            if (freshMatch?.winner) {
+              won = freshMatch.winner === user.id;
+              tied = false;
+              alreadyFinished = true; // prevent double-write below
+            } else if (freshMatch?.status === "finished") {
+              // Player A wrote no winner = tie
+              won = false;
+              tied = true;
+              alreadyFinished = true;
+            }
+            // If still no result after waiting, fall back to local clout
+          }
+        }
       }
     }
 
@@ -1753,10 +1780,10 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* HUD TOP — turn badge left, timer centered */}
+                {/* HUD TOP — turn badge far left, timer centered (absolute so they don't interact) */}
                 {isActivePhase && (
-                  <div className="video-hud-top">
-                    <div className={`vturn-badge ${isUserSpeaking ? "vturn-you" : isRapidFire ? "vturn-rapid" : "vturn-opp"}`}>
+                  <div className="video-hud-top" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 20 }}>
+                    <div className={`vturn-badge ${isUserSpeaking ? "vturn-you" : isRapidFire ? "vturn-rapid" : "vturn-opp"}`} style={{ position: "absolute", left: 16, top: 52 }}>
                       {isUserSpeaking ? "🎤 YOUR TURN" : isRapidFire ? "⚡ RAPID FIRE" : "👁 LISTENING"}
                     </div>
 
