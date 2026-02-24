@@ -172,16 +172,20 @@ interface MatchmakingQueueProps {
   side?: 'yes' | 'no';
   format?: 'text' | 'video';
   topic?: string;
+  matched?: boolean; // true when a real opponent is found
   onReady?: () => void;
   onCancel?: () => void;
+  onAIFallback?: () => void; // called when no match found and user opts for AI
 }
 
 export default function MatchmakingQueue({
   side = 'yes',
   format = 'text',
   topic = 'Should AI be granted legal personhood?',
+  matched = false,
   onReady = () => {},
   onCancel = () => {},
+  onAIFallback = () => {},
 }: MatchmakingQueueProps) {
   const [phase, setPhase] = useState<string>('searching');
   const [elapsed, setElapsed] = useState(0);
@@ -215,13 +219,27 @@ export default function MatchmakingQueue({
     const tp = setInterval(() => setTipIdx(p => (p + 1) % TIPS.length), 3200);
     const qp = setInterval(() => setQueuePos(p => Math.max(1, p - Math.floor(Math.random() * 8))), 1400);
     const tts = SEARCH_STEPS.map(({ t, msg }) => setTimeout(() => setSearchMsg(msg), t));
-    const go = setTimeout(() => setPhase('found'), 8600);
+    // Don't auto-advance to "found" — wait for the `matched` prop or timeout
+    // If no match after 15s, show AI fallback option
+    const aiTimeout = setTimeout(() => {
+      if (phase === 'searching') setPhase('no-match');
+    }, 15000);
 
     return () => {
       clearInterval(el); clearInterval(tp); clearInterval(qp);
-      tts.forEach(clearTimeout); clearTimeout(go);
+      tts.forEach(clearTimeout); clearTimeout(aiTimeout);
     };
   }, [phase]);
+
+  // When `matched` prop becomes true, advance to found
+  useEffect(() => {
+    if (matched && phase === 'searching') {
+      setPhase('found');
+    }
+    if (matched && phase === 'no-match') {
+      setPhase('found');
+    }
+  }, [matched, phase]);
 
   useEffect(() => {
     if (phase !== 'found') return;
@@ -413,6 +431,52 @@ export default function MatchmakingQueue({
                       >
                         Cancel
                       </motion.button>
+                    </motion.div>
+                  )}
+
+                  {phase === 'no-match' && (
+                    <motion.div key="nm" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                      <p style={{ fontSize: statusSize, fontWeight: 700, color: 'rgba(255,255,255,.55)', marginBottom: 12 }}>
+                        No opponents found right now
+                      </p>
+                      <p style={{ fontSize: isSmall ? 10 : 12, color: 'rgba(255,255,255,.25)', marginBottom: 18, padding: '0 12px', lineHeight: 1.5 }}>
+                        You can practice against an AI opponent or keep waiting for a real match.
+                      </p>
+                      <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <motion.button
+                          whileHover={{ scale: 1.03 }} whileTap={{ scale: .97 }}
+                          onClick={onAIFallback}
+                          style={{
+                            padding: '12px 22px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                            background: 'linear-gradient(135deg, #ff4d3d, #ff7a45)', color: '#fff',
+                            fontFamily: 'inherit', fontSize: 12, fontWeight: 800, letterSpacing: '.04em',
+                            boxShadow: '0 10px 30px rgba(255,77,61,.2)',
+                          }}
+                        >
+                          ⚡ Battle AI Instead
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.03 }} whileTap={{ scale: .97 }}
+                          onClick={() => setPhase('searching')}
+                          style={{
+                            padding: '12px 22px', borderRadius: 12, cursor: 'pointer',
+                            border: '1px solid rgba(255,255,255,.10)', background: 'rgba(255,255,255,.04)',
+                            color: 'rgba(255,255,255,.50)', fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+                          }}
+                        >
+                          Keep Searching
+                        </motion.button>
+                        <motion.button
+                          onClick={onCancel}
+                          style={{
+                            padding: '12px 16px', borderRadius: 12, cursor: 'pointer',
+                            background: 'none', border: '1px solid rgba(255,255,255,.06)',
+                            color: 'rgba(255,255,255,.25)', fontFamily: 'inherit', fontSize: 11, fontWeight: 600,
+                          }}
+                        >
+                          Cancel
+                        </motion.button>
+                      </div>
                     </motion.div>
                   )}
 

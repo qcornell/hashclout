@@ -1256,8 +1256,21 @@ export default function Home() {
             side={choice || 'yes'}
             format={debateFormat || 'text'}
             topic={topicTitle}
+            matched={!!opponent}
             onReady={handleMatchmakingReady}
             onCancel={handleMatchmakingCancel}
+            onAIFallback={() => {
+              // Cancel queue, proceed to debate with AI
+              if (queueId) leaveQueue(queueId);
+              queueUnsubRef.current?.();
+              queueUnsubRef.current = null;
+              setQueueId(null);
+              setOpponent(null);
+              setIsLiveMatch(false);
+              soundDebateStart();
+              setGameState("debating");
+              window.scrollTo(0, 0);
+            }}
           />
         </div>
       )}
