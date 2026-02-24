@@ -1741,9 +1741,7 @@ export default function Home() {
                         autoPlay playsInline
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       />
-                      <div className="opp-side-label" style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)" }}>{oppSideLabel}</div>
-                      {isOppSpeaking && <div className="opp-speaking-label" style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)" }}>🎤 Speaking…</div>}
-                      {isRapidFire && <div className="opp-speaking-label" style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)" }}>⚡ Rapid Fire</div>}
+                      <div className="opp-side-label" style={{ position: "absolute", top: 60, left: "50%", transform: "translateX(-50%)" }}>{oppSideLabel}</div>
                     </>
                   ) : (
                     <div className="opp-placeholder-inner">
@@ -1783,11 +1781,11 @@ export default function Home() {
                 {/* HUD TOP — turn badge far left, timer centered (absolute so they don't interact) */}
                 {isActivePhase && (
                   <div className="video-hud-top" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 20 }}>
-                    <div className={`vturn-badge ${isUserSpeaking ? "vturn-you" : isRapidFire ? "vturn-rapid" : "vturn-opp"}`} style={{ position: "absolute", left: 16, top: 52 }}>
+                    <div className={`vturn-badge ${isUserSpeaking ? "vturn-you" : isRapidFire ? "vturn-rapid" : "vturn-opp"}`}>
                       {isUserSpeaking ? "🎤 YOUR TURN" : isRapidFire ? "⚡ RAPID FIRE" : "👁 LISTENING"}
                     </div>
 
-                    <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", top: 10 }}>
+                    <div className="video-hud-timer">
                       <CircleTimer seconds={phaseTimer} max={phaseMax} />
                     </div>
                   </div>
