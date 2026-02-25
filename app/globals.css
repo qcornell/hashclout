@@ -1131,6 +1131,14 @@ body {
   .opp-avatar-big svg { width: 36px; height: 36px; }
   .emoji-float { font-size: 22px; }
 
+  /* Remove backdrop-filter on mobile video elements — saves GPU battery */
+  .video-comment { backdrop-filter: none; background: rgba(0,0,0,.80); }
+  .vturn-badge { backdrop-filter: none; }
+  .video-bottom { backdrop-filter: none; }
+  .btn-yield { backdrop-filter: none; }
+  .emoji-btn-count { backdrop-filter: none; }
+  .video-hud-top { backdrop-filter: none; }
+
   /* Old page-level tab-bar hidden — replaced by global MobileTabBar */
   .tab-bar { display: none !important; }
 }

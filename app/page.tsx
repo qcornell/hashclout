@@ -368,10 +368,11 @@ export default function Home() {
 
   // Challenge availability: only when muted (opponent speaking), not rapid fire, have tokens, no existing challenge
   const canFactCheck = isOppSpeaking && myTokens > 0 && !pendingChallenge;
-  // Can deny: have token, there IS a pending challenge against me, and I'm either muted OR speaking (my turn to respond)
-  // The key insight: opponent submits fact check during THEIR muted time, then it's YOUR speaking turn — you need to be able to deny during your own turn too
+  // Can deny: have token, there IS a pending challenge against me
+  // Available during ANY active non-rapid-fire phase (your speaking turn, opponent's speaking turn, or countdown)
+  // Because: opponent submits fact check while muted → it's your turn → you need to deny
   const hasChallengeAgainstMe = pendingChallenge !== null && pendingChallenge.challengerIsA !== iAmPlayerAVideo;
-  const canDeny = myTokens > 0 && hasChallengeAgainstMe && (isOppSpeaking || isUserSpeaking) && !isRapidFire;
+  const canDeny = myTokens > 0 && hasChallengeAgainstMe && !isRapidFire && !isIntroPhase && !isChallengeReview;
 
   const getRoundInfo = () => {
     if (!videoPhase) return { num: 1, title: "OPENING STATEMENTS", desc: "1 minute each — opponent is muted" };
@@ -961,7 +962,11 @@ export default function Home() {
       } else if (msg.type === "comment") {
         setVideoComments(prev => [...prev.slice(-5), { id: Date.now() + Math.random(), sender: "opponent", text: msg.text }]);
       } else if (msg.type === "phase_advance") {
-        // Opponent hit "Done Speaking" — advance to the same phase
+        // Opponent hit "Done Speaking" or timer expired — advance to the same phase
+        if (msg.nextPhase === "__WAIT__") {
+          // Opponent's timer expired but they're in the challenge modal — hold position, don't advance
+          return;
+        }
         if (msg.nextPhase === "END") {
           setGameState("ended"); setVideoPhase(null);
         } else {
@@ -1081,8 +1086,10 @@ export default function Home() {
         if (prev <= 1) {
           clearInterval(interval);
           // If challenge modal is open, wait for user to finish typing
+          // Also tell the opponent to wait via data channel
           if (showChallengeModalRef.current) {
             setPhaseWaiting(true);
+            if (isLiveMatch) livekit.sendData({ type: "phase_advance", nextPhase: "__WAIT__" });
             return 0;
           }
           const next = getNextPhase(videoPhase);
@@ -1191,12 +1198,15 @@ export default function Home() {
 
   /* ═══ HANDLERS ═══ */
 
+  const isMobileDevice = typeof window !== "undefined" && window.innerWidth <= 768;
+  const maxEmojis = isMobileDevice ? 5 : 12;
+
   const addFloatingEmoji = useCallback((emoji: string) => {
     const id = Date.now() + Math.random();
     const x = 5 + Math.random() * 25;
-    setFloatingEmojis(prev => [...prev.slice(-12), { id, emoji, x }]);
+    setFloatingEmojis(prev => [...prev.slice(-maxEmojis), { id, emoji, x }]);
     setTimeout(() => setFloatingEmojis(prev => prev.filter(e => e.id !== id)), 3200);
-  }, []);
+  }, [maxEmojis]);
 
   const handleStart = () => {
     if (gameState !== "idle") return;
@@ -1337,7 +1347,11 @@ export default function Home() {
     if (format === "video") {
       setPermissionState("requesting");
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+        const videoConstraints = isMobile
+          ? { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24, max: 24 } }
+          : { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
+        const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: true });
         setVideoStream(stream); setPermissionState("granted");
         setTimeout(() => { setPermissionState(null); beginSearch(format); }, 800);
       } catch { setPermissionState("denied"); }
@@ -1374,10 +1388,12 @@ export default function Home() {
       livekit.sendData({ type: "tokens_update", tokens: myTokens - 1 });
     }
 
-    // If timer already expired and was waiting for modal, advance now
+    // If timer already expired and was waiting for modal, advance now — BOTH sides
     if (phaseWaiting) {
       setPhaseWaiting(false);
       const next = getNextPhase(videoPhase || "");
+      // Tell opponent to advance now (they were holding on __WAIT__)
+      if (isLiveMatch) livekit.sendData({ type: "phase_advance", nextPhase: next });
       if (next === "END") {
         setTimeout(() => { setGameState("ended"); setVideoPhase(null); }, 0);
       } else {
@@ -2528,10 +2544,10 @@ export default function Home() {
                   <div style={{
                     position: "absolute", inset: 0, zIndex: 35,
                     background: "rgba(0,0,0,.75)", backdropFilter: "blur(8px)",
-                    display: "flex", alignItems: "flex-end", justifyContent: "center",
-                    padding: "0 16px 24px",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    padding: "16px",
                     animation: "challenge-fade-in 0.2s ease",
-                  }} onClick={() => { setShowChallengeModal(false); if (phaseWaiting) { setPhaseWaiting(false); const next = getNextPhase(videoPhase || ""); if (next === "END") { setTimeout(() => { setGameState("ended"); setVideoPhase(null); }, 0); } else { setTimeout(() => setVideoPhase(next), 0); } } }}>
+                  }} onClick={() => { setShowChallengeModal(false); if (phaseWaiting) { setPhaseWaiting(false); const next = getNextPhase(videoPhase || ""); if (isLiveMatch) livekit.sendData({ type: "phase_advance", nextPhase: next }); if (next === "END") { setTimeout(() => { setGameState("ended"); setVideoPhase(null); }, 0); } else { setTimeout(() => setVideoPhase(next), 0); } } }}>
                     <div onClick={e => e.stopPropagation()} style={{
                       width: "100%", maxWidth: 420, padding: "24px 22px",
                       borderRadius: 20, background: "rgba(20,20,28,.95)",
