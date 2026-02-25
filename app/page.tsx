@@ -369,10 +369,10 @@ export default function Home() {
   // Challenge availability: only when muted (opponent speaking), not rapid fire, have tokens, no existing challenge
   const canFactCheck = isOppSpeaking && myTokens > 0 && !pendingChallenge;
   // Can deny: have token, there IS a pending challenge against me
-  // Available during ANY active non-rapid-fire phase (your speaking turn, opponent's speaking turn, or countdown)
-  // Because: opponent submits fact check while muted → it's your turn → you need to deny
+  // Available during ANY phase that isn't rapid fire or challenge review
+  // Including speaking turns, muted turns, countdowns — whenever the bottom bar is visible
   const hasChallengeAgainstMe = pendingChallenge !== null && pendingChallenge.challengerIsA !== iAmPlayerAVideo;
-  const canDeny = myTokens > 0 && hasChallengeAgainstMe && !isRapidFire && !isIntroPhase && !isChallengeReview;
+  const canDeny = myTokens > 0 && hasChallengeAgainstMe && !isRapidFire && !isChallengeReview;
 
   const getRoundInfo = () => {
     if (!videoPhase) return { num: 1, title: "OPENING STATEMENTS", desc: "1 minute each — opponent is muted" };
@@ -964,12 +964,12 @@ export default function Home() {
       } else if (msg.type === "phase_advance") {
         // Opponent hit "Done Speaking" or timer expired — advance to the same phase
         if (msg.nextPhase === "__WAIT__") {
-          // Opponent's timer expired but they're in the challenge modal — hold position
-          // Show a waiting indicator so this player knows what's happening
-          setChallengeNotification("⏳ Opponent is submitting a fact check...");
+          // Opponent's timer expired but they're in the challenge modal
+          // Show a full dark waiting screen overlay
+          setChallengeNotification("__WAITING__");
           return;
         }
-        // Clear any waiting notification when we get the real advance
+        // Clear any waiting state when we get the real advance
         setChallengeNotification(null);
         if (msg.nextPhase === "END") {
           setGameState("ended"); setVideoPhase(null);
@@ -1614,6 +1614,13 @@ export default function Home() {
   // Video: yield remaining time — syncs to opponent via LiveKit data channel
   const handleYield = () => {
     if (!videoPhase) return;
+    // If challenge modal is open when yielding (e.g. "Done Speaking" pressed),
+    // hold for the modal just like when timer expires
+    if (showChallengeModalRef.current) {
+      setPhaseWaiting(true);
+      if (isLiveMatch) livekit.sendData({ type: "phase_advance", nextPhase: "__WAIT__" });
+      return;
+    }
     const next = getNextPhase(videoPhase);
     if (next === "END") {
       setGameState("ended"); setVideoPhase(null);
@@ -2234,15 +2241,37 @@ export default function Home() {
                   </button>
                 )}
 
-                {/* CHALLENGE NOTIFICATION BANNER */}
-                {challengeNotification && isActivePhase && (
+                {/* WAITING FOR OPPONENT FACT CHECK — full dark overlay */}
+                {challengeNotification === "__WAITING__" && (
+                  <div style={{
+                    position: "absolute", inset: 0, zIndex: 40,
+                    background: "rgba(7,7,12,.95)",
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                    gap: 20,
+                  }}>
+                    <Scale size={40} style={{ color: "#fbbf24", opacity: 0.7 }} />
+                    <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,.80)", letterSpacing: ".06em" }}>
+                      FACT CHECK IN PROGRESS
+                    </div>
+                    <div style={{ fontSize: 14, color: "rgba(255,255,255,.40)", fontWeight: 600 }}>
+                      Opponent is submitting a fact check...
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fbbf24", animation: "analyzing-pulse 1.2s ease infinite" }} />
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fbbf24", animation: "analyzing-pulse 1.2s ease 0.3s infinite" }} />
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fbbf24", animation: "analyzing-pulse 1.2s ease 0.6s infinite" }} />
+                    </div>
+                  </div>
+                )}
+
+                {/* CHALLENGE NOTIFICATION BANNER (normal, e.g. "You've been challenged!") */}
+                {challengeNotification && challengeNotification !== "__WAITING__" && isActivePhase && (
                   <div className="challenge-notification" style={{
                     position: "absolute", top: 56, left: "50%", transform: "translateX(-50%)",
                     zIndex: 25, padding: "8px 18px", borderRadius: 12,
                     background: "rgba(251,191,36,.12)", border: "1px solid rgba(251,191,36,.30)",
                     color: "#fbbf24", fontSize: 13, fontWeight: 800,
                     animation: "challenge-notify-in 0.3s ease",
-                    backdropFilter: "blur(10px)",
                   }}>
                     {challengeNotification}
                   </div>

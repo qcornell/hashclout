@@ -899,7 +899,7 @@ body {
 
 /* Video comments overlay */
 .video-comments-area {
-  position: absolute; left: 16px; top: 80px; z-index: 18;
+  position: absolute; left: 16px; top: 110px; z-index: 18;
   max-width: 55%; display: flex; flex-direction: column;
   gap: 6px; pointer-events: none;
 }
