@@ -784,23 +784,27 @@ body {
   position: absolute; left: 50%; transform: translateX(-50%); top: 10px;
 }
 .vturn-badge {
-  padding: 7px 16px; border-radius: 10px;
-  font-size: 12px; font-weight: 800; letter-spacing: .08em;
+  padding: 8px 18px; border-radius: 12px;
+  font-size: 13px; font-weight: 900; letter-spacing: .10em;
   display: flex; align-items: center; gap: 8px;
   backdrop-filter: blur(10px);
   position: absolute; right: 20px; top: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
 }
 .vturn-you {
-  background: rgba(255,77,61,.15); color: var(--accentB);
-  border: 1px solid rgba(255,77,61,.25);
+  background: rgba(255,77,61,.25); color: #ff7a45;
+  border: 1px solid rgba(255,77,61,.40);
+  box-shadow: 0 4px 16px rgba(255,77,61,.25);
 }
 .vturn-opp {
-  background: rgba(115,47,109,.15); color: #a855f7;
-  border: 1px solid rgba(115,47,109,.25);
+  background: rgba(115,47,109,.25); color: #c084fc;
+  border: 1px solid rgba(168,85,247,.40);
+  box-shadow: 0 4px 16px rgba(168,85,247,.25);
 }
 .vturn-rapid {
-  background: rgba(255,190,120,.10); color: rgba(255,190,120,.9);
-  border: 1px solid rgba(255,190,120,.20);
+  background: rgba(255,190,120,.20); color: rgba(255,200,130,1);
+  border: 1px solid rgba(255,190,120,.35);
+  box-shadow: 0 4px 16px rgba(255,190,120,.25);
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
@@ -1102,7 +1106,7 @@ body {
 
   /* Minimal HUD — only timer + turn badge visible by default */
   .video-hud-top { padding: 10px 12px 8px; gap: 6px; }
-  .vturn-badge { font-size: 10px; padding: 4px 10px; position: absolute; left: 12px; top: 12px; right: auto; }
+  .vturn-badge { font-size: 11px; padding: 6px 12px; position: absolute; left: 12px; top: 12px; right: auto; }
   .video-hud-timer { top: 6px; }
   .ctimer { width: 40px; height: 40px; }
   .ctimer svg { width: 40px; height: 40px; }

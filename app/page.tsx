@@ -964,9 +964,13 @@ export default function Home() {
       } else if (msg.type === "phase_advance") {
         // Opponent hit "Done Speaking" or timer expired — advance to the same phase
         if (msg.nextPhase === "__WAIT__") {
-          // Opponent's timer expired but they're in the challenge modal — hold position, don't advance
+          // Opponent's timer expired but they're in the challenge modal — hold position
+          // Show a waiting indicator so this player knows what's happening
+          setChallengeNotification("⏳ Opponent is submitting a fact check...");
           return;
         }
+        // Clear any waiting notification when we get the real advance
+        setChallengeNotification(null);
         if (msg.nextPhase === "END") {
           setGameState("ended"); setVideoPhase(null);
         } else {
@@ -2215,17 +2219,18 @@ export default function Home() {
                 {isActivePhase && (
                   <button onClick={(e) => { e.stopPropagation(); setCameraVisible(!cameraVisible); }} className="camera-toggle-btn" style={{
                     position: "absolute", zIndex: 22,
-                    width: 36, height: 36, borderRadius: 999,
-                    background: cameraVisible ? "rgba(34,197,94,.15)" : "rgba(255,255,255,.10)",
-                    border: `1px solid ${cameraVisible ? "rgba(34,197,94,.25)" : "rgba(255,255,255,.12)"}`,
-                    color: cameraVisible ? "#22c55e" : "rgba(255,255,255,.45)",
+                    width: 40, height: 40, borderRadius: 999,
+                    background: cameraVisible ? "rgba(34,197,94,.20)" : "rgba(255,255,255,.12)",
+                    border: `2px solid ${cameraVisible ? "rgba(34,197,94,.45)" : "rgba(255,255,255,.20)"}`,
+                    color: cameraVisible ? "#22c55e" : "rgba(255,255,255,.55)",
                     cursor: "pointer",
                     display: "grid", placeItems: "center",
                     transition: "all .2s",
+                    boxShadow: cameraVisible ? "0 2px 12px rgba(34,197,94,.25)" : "0 2px 12px rgba(0,0,0,.3)",
                     /* Default: desktop position — bottom right above exit */
                     bottom: 56, right: 16, top: "auto",
                   }}>
-                    {cameraVisible ? <Video size={16} /> : <VideoOff size={16} />}
+                    {cameraVisible ? <Video size={18} /> : <VideoOff size={18} />}
                   </button>
                 )}
 
@@ -2263,20 +2268,22 @@ export default function Home() {
                     display: "flex", gap: 8, alignItems: "center",
                   }}>
                     <div style={{
-                      padding: "4px 10px", borderRadius: 8,
-                      background: myTokens > 0 ? "rgba(251,191,36,.10)" : "rgba(255,255,255,.04)",
-                      border: `1px solid ${myTokens > 0 ? "rgba(251,191,36,.20)" : "rgba(255,255,255,.06)"}`,
-                      fontSize: 10, fontWeight: 800,
-                      color: myTokens > 0 ? "#fbbf24" : "rgba(255,255,255,.20)",
+                      padding: "5px 12px", borderRadius: 10,
+                      background: myTokens > 0 ? "rgba(251,191,36,.15)" : "rgba(255,255,255,.05)",
+                      border: `1.5px solid ${myTokens > 0 ? "rgba(251,191,36,.35)" : "rgba(255,255,255,.08)"}`,
+                      fontSize: 11, fontWeight: 900,
+                      color: myTokens > 0 ? "#fbbf24" : "rgba(255,255,255,.25)",
+                      boxShadow: myTokens > 0 ? "0 2px 10px rgba(251,191,36,.20)" : "none",
                     }}>
                       ⚖️ {myTokens}
                     </div>
                     <div style={{
-                      padding: "4px 10px", borderRadius: 8,
-                      background: oppTokens > 0 ? "rgba(168,85,247,.08)" : "rgba(255,255,255,.04)",
-                      border: `1px solid ${oppTokens > 0 ? "rgba(168,85,247,.15)" : "rgba(255,255,255,.06)"}`,
-                      fontSize: 10, fontWeight: 800,
-                      color: oppTokens > 0 ? "#a855f7" : "rgba(255,255,255,.20)",
+                      padding: "5px 12px", borderRadius: 10,
+                      background: oppTokens > 0 ? "rgba(168,85,247,.12)" : "rgba(255,255,255,.05)",
+                      border: `1.5px solid ${oppTokens > 0 ? "rgba(168,85,247,.30)" : "rgba(255,255,255,.08)"}`,
+                      fontSize: 11, fontWeight: 900,
+                      color: oppTokens > 0 ? "#c084fc" : "rgba(255,255,255,.25)",
+                      boxShadow: oppTokens > 0 ? "0 2px 10px rgba(168,85,247,.20)" : "none",
                     }}>
                       ⚖️ {oppTokens}
                     </div>
@@ -2543,9 +2550,9 @@ export default function Home() {
                 {showChallengeModal && (
                   <div style={{
                     position: "absolute", inset: 0, zIndex: 35,
-                    background: "rgba(0,0,0,.75)", backdropFilter: "blur(8px)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    padding: "16px",
+                    background: "rgba(0,0,0,.80)",
+                    display: "flex", alignItems: "flex-start", justifyContent: "center",
+                    paddingTop: "15vh", paddingLeft: 16, paddingRight: 16,
                     animation: "challenge-fade-in 0.2s ease",
                   }} onClick={() => { setShowChallengeModal(false); if (phaseWaiting) { setPhaseWaiting(false); const next = getNextPhase(videoPhase || ""); if (isLiveMatch) livekit.sendData({ type: "phase_advance", nextPhase: next }); if (next === "END") { setTimeout(() => { setGameState("ended"); setVideoPhase(null); }, 0); } else { setTimeout(() => setVideoPhase(next), 0); } } }}>
                     <div onClick={e => e.stopPropagation()} style={{
