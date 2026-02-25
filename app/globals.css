@@ -788,6 +788,7 @@ body {
   font-size: 12px; font-weight: 800; letter-spacing: .08em;
   display: flex; align-items: center; gap: 8px;
   backdrop-filter: blur(10px);
+  position: absolute; right: 20px; top: 14px;
 }
 .vturn-you {
   background: rgba(255,77,61,.15); color: var(--accentB);
@@ -1101,7 +1102,7 @@ body {
 
   /* Minimal HUD — only timer + turn badge visible by default */
   .video-hud-top { padding: 10px 12px 8px; gap: 6px; }
-  .vturn-badge { font-size: 10px; padding: 4px 10px; position: absolute; left: 12px; top: 12px; }
+  .vturn-badge { font-size: 10px; padding: 4px 10px; position: absolute; left: 12px; top: 12px; right: auto; }
   .video-hud-timer { top: 6px; }
   .ctimer { width: 40px; height: 40px; }
   .ctimer svg { width: 40px; height: 40px; }
@@ -1114,8 +1115,8 @@ body {
   }
   /* Mic, sentiment, viewers — hidden on mobile for now */
 
-  /* Comments always visible on mobile — compact at top left */
-  .video-comments-area { display: flex; top: 60px; bottom: auto; left: 10px; max-width: 55%; }
+  /* Comments always visible on mobile — pushed down to avoid clashing with HUD */
+  .video-comments-area { display: flex; top: 110px; bottom: auto; left: 10px; max-width: 55%; }
   .video-comment { padding: 4px 8px; }
   .vc-text { font-size: 10px; }
 

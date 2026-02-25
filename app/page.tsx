@@ -308,11 +308,13 @@ export default function Home() {
   const [sentimentPct, setSentimentPct] = useState(52);
 
   /* ─── fact check state ─── */
-  const [myTokens, setMyTokens] = useState(1); // 1 challenge token per match
+  const [myTokens, setMyTokens] = useState(1); // 1 challenge token per non-rapid-fire round
   const [oppTokens, setOppTokens] = useState(1);
+  const showChallengeModalRef = useRef(false); // ref to check in timer effect
   const [pendingChallenge, setPendingChallenge] = useState<PendingChallenge | null>(null);
   const [challengeResult, setChallengeResult] = useState<ChallengeResult | null>(null);
   const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [phaseWaiting, setPhaseWaiting] = useState(false); // true = timer hit 0 but waiting for challenge modal
   const [challengeInput, setChallengeInput] = useState("");
   const [challengeNotification, setChallengeNotification] = useState<string | null>(null); // "You've been challenged!"
   const [interludeStep, setInterludeStep] = useState(0); // drives the reveal animation
@@ -320,6 +322,8 @@ export default function Home() {
   const [blockTimer, setBlockTimer] = useState(5);
   const [challengeXpDelta, setChallengeXpDelta] = useState(0); // XP gained/lost from challenge
   const pendingChallengeRef = useRef<PendingChallenge | null>(null);
+  // Keep modal ref in sync
+  useEffect(() => { showChallengeModalRef.current = showChallengeModal; }, [showChallengeModal]);
 
   /* ─── LiveKit ─── */
   const livekit = useLiveKitRoom();
@@ -362,10 +366,12 @@ export default function Home() {
   const showSelf = isMyCountdown || isUserSpeaking;
   const showOpp = isOppCountdown || isOppSpeaking || isRapidFire;
 
-  // Challenge availability: only when muted (opponent speaking), not rapid fire, have tokens
+  // Challenge availability: only when muted (opponent speaking), not rapid fire, have tokens, no existing challenge
   const canFactCheck = isOppSpeaking && myTokens > 0 && !pendingChallenge;
-  // Can deny: muted turn, have token, there IS a pending challenge against me
-  const canDeny = isOppSpeaking && myTokens > 0 && pendingChallenge !== null && pendingChallenge.challengerIsA !== iAmPlayerAVideo;
+  // Can deny: have token, there IS a pending challenge against me, and I'm either muted OR speaking (my turn to respond)
+  // The key insight: opponent submits fact check during THEIR muted time, then it's YOUR speaking turn — you need to be able to deny during your own turn too
+  const hasChallengeAgainstMe = pendingChallenge !== null && pendingChallenge.challengerIsA !== iAmPlayerAVideo;
+  const canDeny = myTokens > 0 && hasChallengeAgainstMe && (isOppSpeaking || isUserSpeaking) && !isRapidFire;
 
   const getRoundInfo = () => {
     if (!videoPhase) return { num: 1, title: "OPENING STATEMENTS", desc: "1 minute each — opponent is muted" };
@@ -1044,6 +1050,17 @@ export default function Home() {
     const dur = PHASE_DURATIONS[videoPhase] || 0;
     setPhaseTimer(dur);
 
+    // Refill challenge tokens at the start of each non-rapid-fire round
+    if (videoPhase.endsWith("-intro") && videoPhase !== "r2-intro") {
+      setMyTokens(1);
+      setOppTokens(1);
+      // Clear any leftover challenge state from previous round
+      setPendingChallenge(null);
+      pendingChallengeRef.current = null;
+      setChallengeResult(null);
+      setChallengeNotification(null);
+    }
+
     // Play sounds on phase entry (use derived booleans)
     if (videoPhase.endsWith("-intro")) {
       soundRoundTransition();
@@ -1063,6 +1080,11 @@ export default function Home() {
 
         if (prev <= 1) {
           clearInterval(interval);
+          // If challenge modal is open, wait for user to finish typing
+          if (showChallengeModalRef.current) {
+            setPhaseWaiting(true);
+            return 0;
+          }
           const next = getNextPhase(videoPhase);
           if (next === "END") {
             setTimeout(() => { setGameState("ended"); setVideoPhase(null); }, 0);
@@ -1351,6 +1373,17 @@ export default function Home() {
       livekit.sendData({ type: "fact_check", claim });
       livekit.sendData({ type: "tokens_update", tokens: myTokens - 1 });
     }
+
+    // If timer already expired and was waiting for modal, advance now
+    if (phaseWaiting) {
+      setPhaseWaiting(false);
+      const next = getNextPhase(videoPhase || "");
+      if (next === "END") {
+        setTimeout(() => { setGameState("ended"); setVideoPhase(null); }, 0);
+      } else {
+        setTimeout(() => setVideoPhase(next), 0);
+      }
+    }
   };
 
   /** Deny a challenge ("I never said that!") — costs your token, voids the challenge */
@@ -1537,11 +1570,11 @@ export default function Home() {
       setUserClout(p => p + Math.max(0, Math.round(xpDelta / 100)));
     }
 
-    await new Promise(r => setTimeout(r, 2500)); // Show verdict for 2.5s
+    await new Promise(r => setTimeout(r, 3000)); // Show verdict for 3s
 
     // Step 5: Context line
     setInterludeStep(5);
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 3500)); // Extra time to read context
 
     // Clean up and advance
     setChallengeResult(null);
@@ -1705,6 +1738,7 @@ export default function Home() {
     setMyTokens(1); setOppTokens(1); setPendingChallenge(null); pendingChallengeRef.current = null;
     setChallengeResult(null); setShowChallengeModal(false); setChallengeInput("");
     setChallengeNotification(null); setInterludeStep(0); setBlockWindow(false); setBlockTimer(5); setChallengeXpDelta(0);
+    setPhaseWaiting(false);
     setShowCustomize(false); setCustomRapidRounds(1); setCustomRoundTime(60);
     queueUnsubRef.current?.(); queueUnsubRef.current = null;
     queuePollRef.current?.(); queuePollRef.current = null;
@@ -2406,6 +2440,21 @@ export default function Home() {
                     {isUserSpeaking ? (
                       <>
                         <button className="btn-yield" onClick={handleYield}>Done Speaking ⏩</button>
+                        {/* DENY button visible even during YOUR speaking turn if you've been challenged */}
+                        {canDeny && (
+                          <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+                            <button onClick={handleDenyChallenge} style={{
+                              padding: "8px 14px", borderRadius: 12,
+                              background: "rgba(168,85,247,.10)", border: "1px solid rgba(168,85,247,.25)",
+                              color: "#a855f7", fontSize: 11, fontWeight: 800,
+                              cursor: "pointer", fontFamily: "inherit",
+                              display: "flex", alignItems: "center", gap: 5,
+                              transition: "all .2s",
+                            }}>
+                              <Shield size={13} /> I NEVER SAID THAT
+                            </button>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <>
@@ -2482,13 +2531,18 @@ export default function Home() {
                     display: "flex", alignItems: "flex-end", justifyContent: "center",
                     padding: "0 16px 24px",
                     animation: "challenge-fade-in 0.2s ease",
-                  }} onClick={() => setShowChallengeModal(false)}>
+                  }} onClick={() => { setShowChallengeModal(false); if (phaseWaiting) { setPhaseWaiting(false); const next = getNextPhase(videoPhase || ""); if (next === "END") { setTimeout(() => { setGameState("ended"); setVideoPhase(null); }, 0); } else { setTimeout(() => setVideoPhase(next), 0); } } }}>
                     <div onClick={e => e.stopPropagation()} style={{
                       width: "100%", maxWidth: 420, padding: "24px 22px",
                       borderRadius: 20, background: "rgba(20,20,28,.95)",
                       border: "1px solid rgba(251,191,36,.20)",
                       boxShadow: "0 20px 60px rgba(0,0,0,.6)",
                     }}>
+                      {phaseWaiting && (
+                        <div style={{ padding: "8px 14px", marginBottom: 12, borderRadius: 10, background: "rgba(255,77,61,.08)", border: "1px solid rgba(255,77,61,.18)", color: "#ff7a45", fontSize: 11, fontWeight: 700, textAlign: "center" }}>
+                          ⏱ Round timer ended — submit or cancel to continue
+                        </div>
+                      )}
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                         <Scale size={20} style={{ color: "#fbbf24" }} />
                         <span style={{ fontSize: 18, fontWeight: 900, color: "#fbbf24" }}>Challenge a Claim</span>
