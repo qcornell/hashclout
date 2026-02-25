@@ -232,6 +232,71 @@ export function soundLockIn() {
   playNoise(0.06, 0.03);
 }
 
+/** Fact Check — bass rumble buildup for challenge review */
+export function soundFactCheckRumble() {
+  try {
+    const ctx = getCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(55, ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(110, ctx.currentTime + 1.5);
+    gain.gain.setValueAtTime(0.02, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 1.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.8);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 1.8);
+  } catch {}
+}
+
+/** Fact Check FAKE NEWS verdict — buzzer + impact */
+export function soundFakeNews() {
+  playNoise(0.2, 0.10);
+  playSequence([
+    { freq: 180, time: 0, dur: 0.15, vol: 0.16, type: "sawtooth" },
+    { freq: 120, time: 0.1, dur: 0.2, vol: 0.14, type: "sawtooth" },
+    { freq: 80, time: 0.2, dur: 0.3, vol: 0.10, type: "sawtooth" },
+  ]);
+}
+
+/** Fact Check FACTS verdict — gavel slam + bright chime */
+export function soundFactsVerified() {
+  playNoise(0.1, 0.06);
+  playSequence([
+    { freq: 784, time: 0, dur: 0.15, vol: 0.14 },    // G5
+    { freq: 988, time: 0.1, dur: 0.15, vol: 0.16 },   // B5
+    { freq: 1175, time: 0.2, dur: 0.3, vol: 0.14 },   // D6
+  ]);
+}
+
+/** Fact Check STRETCH verdict — wobbly uncertain tone */
+export function soundStretch() {
+  playSequence([
+    { freq: 440, time: 0, dur: 0.2, vol: 0.10, type: "triangle" },
+    { freq: 466, time: 0.1, dur: 0.2, vol: 0.10, type: "triangle" },
+    { freq: 440, time: 0.2, dur: 0.2, vol: 0.08, type: "triangle" },
+  ]);
+}
+
+/** Fact Check DENIED / BLOCKED — shield slam */
+export function soundDenied() {
+  playNoise(0.15, 0.07);
+  playSequence([
+    { freq: 300, time: 0, dur: 0.1, vol: 0.12, type: "square" },
+    { freq: 200, time: 0.08, dur: 0.2, vol: 0.10, type: "square" },
+  ]);
+}
+
+/** Challenge queued — subtle confirmation */
+export function soundChallengeQueued() {
+  playSequence([
+    { freq: 660, time: 0, dur: 0.06, vol: 0.08 },
+    { freq: 880, time: 0.04, dur: 0.1, vol: 0.06 },
+  ]);
+}
+
 /**
  * Initialize audio context on first user interaction.
  * Call this on any click/tap to ensure audio works (autoplay policy).

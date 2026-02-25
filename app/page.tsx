@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Play, Eye, EyeOff, User, Flame, Trophy, Send, Clock, Video, VideoOff } from "lucide-react";
+import { Play, Eye, EyeOff, User, Flame, Trophy, Send, Clock, Video, VideoOff, Scale, Shield } from "lucide-react";
 import Image from "next/image";
 import MatchmakingQueue from "@/components/MatchmakingQueue";
 import { useAuth } from "@/lib/auth-context";
@@ -21,6 +21,7 @@ import {
   soundMessageSent, soundMessageReceived, soundEmojiReact,
   soundVictory, soundDefeat, soundTie, soundXPEarned, soundDebateStart,
   soundClick, soundLockIn,
+  soundFactCheckRumble, soundFakeNews, soundFactsVerified, soundStretch, soundDenied, soundChallengeQueued,
 } from "@/lib/sounds";
 import ForfeitGuard from "@/components/ForfeitGuard";
 
@@ -33,6 +34,22 @@ type VideoPhase = string | null; // phase keys from PHASE_ORDER
 interface Message { id: number; sender: "user" | "opponent" | "system"; text: string; clout?: number; }
 interface FloatEmoji { id: number; emoji: string; x: number; }
 interface VComment { id: number; sender: "user" | "opponent"; text: string; }
+
+/* ═══ FACT CHECK TYPES ═══ */
+type FactCheckVerdict = "FACTS" | "FAKE_NEWS" | "STRETCH" | "UNVERIFIABLE";
+interface PendingChallenge {
+  claim: string;
+  challengerIsA: boolean; // true if player A submitted this challenge
+  round: string; // which round it was submitted during
+}
+interface ChallengeResult {
+  type: "fact_check" | "denied" | "blocked";
+  claim: string;
+  challengerName: string;
+  speakerName: string;
+  verdict?: FactCheckVerdict;
+  context?: string;
+}
 
 /* ═══ CONSTANTS ═══ */
 const REACTION_EMOJIS = ["👍", "👎", "🔥", "💯", "😂", "🤯"];
@@ -73,25 +90,41 @@ const NO_SIDE_RESPONSES = [
  * - This ensures both clients agree on the phase order even in live 1v1
  *
  * Canonical order (shared between both players):
- *   R1: intro → a-countdown → a-speaking → b-countdown → b-speaking
+ *   R1: intro → a-countdown → a-speaking → [challenge-review] → b-countdown → b-speaking → [challenge-review]
  *   R2: intro → active (both)
- *   R3: intro → b-countdown → b-speaking → a-countdown → a-speaking (opponent first, you last)
+ *   R3: intro → b-countdown → b-speaking → [challenge-review] → a-countdown → a-speaking → [challenge-review]
+ *
+ * Challenge review phases are CONDITIONAL — only entered if a challenge was submitted.
+ * Duration 0 in the table = auto-skip in the timer effect when no challenge exists.
+ * When a challenge exists, the interlude is driven by its own state machine (not the phase timer).
  */
 const PHASE_DURATIONS: Record<string, number> = {
   "r1-intro": 3, "r1-a-countdown": 5, "r1-a-speaking": 60,
+  "r1-challenge-review-1": 0, // conditional — managed by interlude
   "r1-b-countdown": 3, "r1-b-speaking": 60,
+  "r1-challenge-review-2": 0, // conditional — managed by interlude
   "r2-intro": 3, "r2-active": 120,
   "r3-intro": 3, "r3-b-countdown": 5, "r3-b-speaking": 60,
+  "r3-challenge-review-1": 0, // conditional
   "r3-a-countdown": 3, "r3-a-speaking": 60,
+  "r3-challenge-review-2": 0, // conditional
 };
 
 const PHASE_ORDER: string[] = [
   "r1-intro", "r1-a-countdown", "r1-a-speaking",
+  "r1-challenge-review-1",
   "r1-b-countdown", "r1-b-speaking",
+  "r1-challenge-review-2",
   "r2-intro", "r2-active",
   "r3-intro", "r3-b-countdown", "r3-b-speaking",
+  "r3-challenge-review-1",
   "r3-a-countdown", "r3-a-speaking",
+  "r3-challenge-review-2",
 ];
+
+function isChallengeReviewPhase(phase: string): boolean {
+  return phase.includes("challenge-review");
+}
 
 function getNextPhase(phase: string): string {
   const idx = PHASE_ORDER.indexOf(phase);
@@ -274,6 +307,20 @@ export default function Home() {
   const [userSpeakTime, setUserSpeakTime] = useState(0);
   const [sentimentPct, setSentimentPct] = useState(52);
 
+  /* ─── fact check state ─── */
+  const [myTokens, setMyTokens] = useState(1); // 1 challenge token per match
+  const [oppTokens, setOppTokens] = useState(1);
+  const [pendingChallenge, setPendingChallenge] = useState<PendingChallenge | null>(null);
+  const [challengeResult, setChallengeResult] = useState<ChallengeResult | null>(null);
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [challengeInput, setChallengeInput] = useState("");
+  const [challengeNotification, setChallengeNotification] = useState<string | null>(null); // "You've been challenged!"
+  const [interludeStep, setInterludeStep] = useState(0); // drives the reveal animation
+  const [blockWindow, setBlockWindow] = useState(false); // 5-sec block window for edge case
+  const [blockTimer, setBlockTimer] = useState(5);
+  const [challengeXpDelta, setChallengeXpDelta] = useState(0); // XP gained/lost from challenge
+  const pendingChallengeRef = useRef<PendingChallenge | null>(null);
+
   /* ─── LiveKit ─── */
   const livekit = useLiveKitRoom();
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -310,9 +357,15 @@ export default function Home() {
   const isUserSpeaking = vp.endsWith(`-${myLetter}-speaking`);
   const isOppSpeaking = vp.endsWith(`-${oppLetter}-speaking`);
   const isRapidFire = vp === "r2-active";
+  const isChallengeReview = isChallengeReviewPhase(vp);
   const isActivePhase = isUserSpeaking || isOppSpeaking || isRapidFire;
   const showSelf = isMyCountdown || isUserSpeaking;
   const showOpp = isOppCountdown || isOppSpeaking || isRapidFire;
+
+  // Challenge availability: only when muted (opponent speaking), not rapid fire, have tokens
+  const canFactCheck = isOppSpeaking && myTokens > 0 && !pendingChallenge;
+  // Can deny: muted turn, have token, there IS a pending challenge against me
+  const canDeny = isOppSpeaking && myTokens > 0 && pendingChallenge !== null && pendingChallenge.challengerIsA !== iAmPlayerAVideo;
 
   const getRoundInfo = () => {
     if (!videoPhase) return { num: 1, title: "OPENING STATEMENTS", desc: "1 minute each — opponent is muted" };
@@ -893,7 +946,7 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraVisible]);
 
-  // LiveKit: handle incoming data messages (emojis, comments, phase sync)
+  // LiveKit: handle incoming data messages (emojis, comments, phase sync, challenges)
   useEffect(() => {
     livekit.onData((msg: DataMessage, _senderId: string) => {
       if (msg.type === "emoji") {
@@ -908,10 +961,54 @@ export default function Home() {
         } else {
           setVideoPhase(msg.nextPhase);
         }
+      } else if (msg.type === "fact_check") {
+        // Opponent submitted a fact check against us
+        const challenge: PendingChallenge = {
+          claim: msg.claim,
+          challengerIsA: !iAmPlayerAVideo, // opponent is the other letter
+          round: vp.split("-")[0] || "r1",
+        };
+        setPendingChallenge(challenge);
+        pendingChallengeRef.current = challenge;
+        setChallengeNotification("⚖️ You've been challenged!");
+        setTimeout(() => setChallengeNotification(null), 4000);
+      } else if (msg.type === "deny_challenge") {
+        // Opponent denied our challenge — void it
+        setPendingChallenge(prev => {
+          if (prev) {
+            // The pending challenge is now denied — store the result for interlude
+            setChallengeResult({
+              type: "denied",
+              claim: prev.claim,
+              challengerName: "You",
+              speakerName: "Opponent",
+            });
+          }
+          return null;
+        });
+        pendingChallengeRef.current = null;
+        setOppTokens(p => p - 1);
+      } else if (msg.type === "block_challenge") {
+        // Opponent blocked our challenge during the block window
+        setPendingChallenge(prev => {
+          if (prev) {
+            setChallengeResult({
+              type: "blocked",
+              claim: prev.claim,
+              challengerName: "You",
+              speakerName: "Opponent",
+            });
+          }
+          return null;
+        });
+        pendingChallengeRef.current = null;
+        setOppTokens(p => p - 1);
+      } else if (msg.type === "tokens_update") {
+        setOppTokens(msg.tokens);
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [iAmPlayerAVideo]);
 
   // Determine player A/B for video when entering debate
   useEffect(() => {
@@ -924,6 +1021,26 @@ export default function Home() {
   // Phase timer & auto-advance + sound effects
   useEffect(() => {
     if (gameState !== "debating" || debateFormat !== "video" || !videoPhase) return;
+
+    // CHALLENGE REVIEW phases — conditionally enter or skip
+    if (isChallengeReviewPhase(videoPhase)) {
+      const hasPending = pendingChallengeRef.current !== null;
+      if (!hasPending) {
+        // No challenge — skip straight to next phase
+        const next = getNextPhase(videoPhase);
+        if (next === "END") {
+          setTimeout(() => { setGameState("ended"); setVideoPhase(null); }, 0);
+        } else {
+          setTimeout(() => setVideoPhase(next), 0);
+        }
+        return;
+      }
+      // Challenge exists — the interlude animation is driven by handleChallengeInterlude
+      // Don't run the normal timer. Interlude will call setVideoPhase when done.
+      handleChallengeInterlude();
+      return;
+    }
+
     const dur = PHASE_DURATIONS[videoPhase] || 0;
     setPhaseTimer(dur);
 
@@ -1210,6 +1327,237 @@ export default function Home() {
 
   const handleFallbackToText = () => { setPermissionState(null); setDebateFormat("text"); beginSearch("text"); };
 
+  /* ═══ FACT CHECK HANDLERS ═══ */
+
+  /** Submit a fact check challenge */
+  const handleSubmitChallenge = () => {
+    const claim = challengeInput.trim();
+    if (claim.length < 12 || claim.length > 120 || myTokens <= 0) return;
+
+    soundChallengeQueued();
+    const challenge: PendingChallenge = {
+      claim,
+      challengerIsA: iAmPlayerAVideo,
+      round: vp.split("-")[0] || "r1",
+    };
+    setPendingChallenge(challenge);
+    pendingChallengeRef.current = challenge;
+    setMyTokens(p => p - 1);
+    setChallengeInput("");
+    setShowChallengeModal(false);
+
+    // Send to opponent
+    if (isLiveMatch) {
+      livekit.sendData({ type: "fact_check", claim });
+      livekit.sendData({ type: "tokens_update", tokens: myTokens - 1 });
+    }
+  };
+
+  /** Deny a challenge ("I never said that!") — costs your token, voids the challenge */
+  const handleDenyChallenge = () => {
+    if (myTokens <= 0 || !pendingChallenge) return;
+
+    soundDenied();
+    const result: ChallengeResult = {
+      type: "denied",
+      claim: pendingChallenge.claim,
+      challengerName: "Opponent",
+      speakerName: "You",
+    };
+    setChallengeResult(result);
+    setPendingChallenge(null);
+    pendingChallengeRef.current = null;
+    setMyTokens(p => p - 1);
+
+    if (isLiveMatch) {
+      livekit.sendData({ type: "deny_challenge" });
+      livekit.sendData({ type: "tokens_update", tokens: myTokens - 1 });
+    }
+  };
+
+  /** Block a challenge during the 5-sec block window (edge case) */
+  const handleBlockChallenge = () => {
+    if (myTokens <= 0 || !pendingChallenge) return;
+
+    soundDenied();
+    const result: ChallengeResult = {
+      type: "blocked",
+      claim: pendingChallenge.claim,
+      challengerName: "Opponent",
+      speakerName: "You",
+    };
+    setChallengeResult(result);
+    setPendingChallenge(null);
+    pendingChallengeRef.current = null;
+    setMyTokens(p => p - 1);
+    setBlockWindow(false);
+
+    if (isLiveMatch) {
+      livekit.sendData({ type: "block_challenge" });
+      livekit.sendData({ type: "tokens_update", tokens: myTokens - 1 });
+    }
+  };
+
+  /** Drive the challenge interlude animation sequence */
+  const handleChallengeInterlude = async () => {
+    const challenge = pendingChallengeRef.current;
+    if (!challenge) return;
+
+    // Determine if this challenge was already denied/blocked
+    // If challengeResult is already set (denied/blocked during speaking turn), show that instead
+    const existingResult = challengeResult;
+    if (existingResult && (existingResult.type === "denied" || existingResult.type === "blocked")) {
+      // Show denied/blocked interlude
+      setInterludeStep(1); soundDenied();
+      await new Promise(r => setTimeout(r, 1000));
+      setInterludeStep(2);
+      await new Promise(r => setTimeout(r, 1500));
+      setInterludeStep(3);
+      await new Promise(r => setTimeout(r, 1500));
+
+      // Clean up and advance
+      setChallengeResult(null);
+      setPendingChallenge(null);
+      pendingChallengeRef.current = null;
+      setInterludeStep(0);
+
+      const next = getNextPhase(videoPhase || "");
+      if (next === "END") {
+        setGameState("ended"); setVideoPhase(null);
+      } else {
+        setVideoPhase(next);
+      }
+      return;
+    }
+
+    // Check if the challenged player needs a block window
+    // Edge case: challenge submitted right before rapid fire or at end,
+    // and the challenged player never had a muted turn to deny.
+    const challengedIsMe = challenge.challengerIsA !== iAmPlayerAVideo;
+    const nextPhaseAfterReview = getNextPhase(videoPhase || "");
+    const isPreRapid = nextPhaseAfterReview === "r2-intro";
+    const isEndOfMatch = nextPhaseAfterReview === "END";
+
+    if (challengedIsMe && myTokens > 0 && (isPreRapid || isEndOfMatch)) {
+      // Show block window
+      setBlockWindow(true);
+      setBlockTimer(5);
+      setInterludeStep(1); // Show the claim
+      soundFactCheckRumble();
+
+      // 5 second countdown — if they don't block, proceed to AI check
+      for (let t = 5; t > 0; t--) {
+        await new Promise(r => setTimeout(r, 1000));
+        setBlockTimer(t - 1);
+        // Check if they blocked during this second
+        if (!pendingChallengeRef.current) {
+          // Was blocked! The block handler already set the result
+          setBlockWindow(false);
+          setInterludeStep(2);
+          await new Promise(r => setTimeout(r, 1500));
+          setInterludeStep(3);
+          await new Promise(r => setTimeout(r, 1500));
+
+          setChallengeResult(null);
+          setInterludeStep(0);
+          const next = getNextPhase(videoPhase || "");
+          if (next === "END") {
+            setGameState("ended"); setVideoPhase(null);
+          } else {
+            setVideoPhase(next);
+          }
+          return;
+        }
+      }
+      setBlockWindow(false);
+    }
+
+    // === FULL FACT CHECK REVEAL ===
+    // Step 1: Overlay + rumble
+    setInterludeStep(1);
+    soundFactCheckRumble();
+    await new Promise(r => setTimeout(r, 1500));
+
+    // Step 2: Show claim
+    setInterludeStep(2);
+    await new Promise(r => setTimeout(r, 1500));
+
+    // Step 3: "ANALYZING..."
+    setInterludeStep(3);
+    await new Promise(r => setTimeout(r, 500));
+
+    // Call AI
+    let verdict: FactCheckVerdict = "UNVERIFIABLE";
+    let context = "Unable to verify.";
+    try {
+      const res = await fetch("/api/fact-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ claim: challenge.claim }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        verdict = data.verdict;
+        context = data.context;
+      }
+    } catch {}
+
+    await new Promise(r => setTimeout(r, 1500)); // Show "ANALYZING..." for suspense
+
+    // Step 4: VERDICT
+    const challengerName = challenge.challengerIsA === iAmPlayerAVideo ? "You" : (opponent?.opponentDisplayName || "Opponent");
+    const speakerName = challenge.challengerIsA === iAmPlayerAVideo ? (opponent?.opponentDisplayName || "Opponent") : "You";
+
+    const result: ChallengeResult = {
+      type: "fact_check",
+      claim: challenge.claim,
+      challengerName,
+      speakerName,
+      verdict,
+      context,
+    };
+    setChallengeResult(result);
+    setInterludeStep(4);
+
+    // Play verdict sound
+    if (verdict === "FAKE_NEWS") soundFakeNews();
+    else if (verdict === "FACTS") soundFactsVerified();
+    else if (verdict === "STRETCH") soundStretch();
+
+    // Calculate XP delta
+    const iAmChallenger = challenge.challengerIsA === iAmPlayerAVideo;
+    let xpDelta = 0;
+    if (verdict === "FAKE_NEWS") xpDelta = iAmChallenger ? 2000 : -500;
+    else if (verdict === "FACTS") xpDelta = iAmChallenger ? -500 : 1000;
+    else if (verdict === "STRETCH") xpDelta = iAmChallenger ? 500 : 0;
+    setChallengeXpDelta(xpDelta);
+
+    // Apply XP delta to user clout (visual) — actual XP is calculated at match end
+    if (xpDelta !== 0) {
+      setUserClout(p => p + Math.max(0, Math.round(xpDelta / 100)));
+    }
+
+    await new Promise(r => setTimeout(r, 2500)); // Show verdict for 2.5s
+
+    // Step 5: Context line
+    setInterludeStep(5);
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Clean up and advance
+    setChallengeResult(null);
+    setPendingChallenge(null);
+    pendingChallengeRef.current = null;
+    setInterludeStep(0);
+    setChallengeXpDelta(0);
+
+    const next = getNextPhase(videoPhase || "");
+    if (next === "END") {
+      setGameState("ended"); setVideoPhase(null);
+    } else {
+      setVideoPhase(next);
+    }
+  };
+
   // Video: yield remaining time — syncs to opponent via LiveKit data channel
   const handleYield = () => {
     if (!videoPhase) return;
@@ -1354,6 +1702,9 @@ export default function Home() {
     setEmojiCounts({ "👍": 0, "👎": 0, "🔥": 0, "💯": 0, "😂": 0, "🤯": 0 });
     setMatchId(null); setEloDelta(0); setXpResult(null); setAiFeedback(null); setAiProcessing(false); setMatchOutcome(null); setQueueId(null); setOpponent(null);
     setIsLiveMatch(false); setOppTyping(false); setModerationWarning(null); setCameraVisible(true); setShowExitConfirm(false);
+    setMyTokens(1); setOppTokens(1); setPendingChallenge(null); pendingChallengeRef.current = null;
+    setChallengeResult(null); setShowChallengeModal(false); setChallengeInput("");
+    setChallengeNotification(null); setInterludeStep(0); setBlockWindow(false); setBlockTimer(5); setChallengeXpDelta(0);
     setShowCustomize(false); setCustomRapidRounds(1); setCustomRoundTime(60);
     queueUnsubRef.current?.(); queueUnsubRef.current = null;
     queuePollRef.current?.(); queuePollRef.current = null;
@@ -1828,6 +2179,218 @@ export default function Home() {
                   </button>
                 )}
 
+                {/* CHALLENGE NOTIFICATION BANNER */}
+                {challengeNotification && isActivePhase && (
+                  <div className="challenge-notification" style={{
+                    position: "absolute", top: 56, left: "50%", transform: "translateX(-50%)",
+                    zIndex: 25, padding: "8px 18px", borderRadius: 12,
+                    background: "rgba(251,191,36,.12)", border: "1px solid rgba(251,191,36,.30)",
+                    color: "#fbbf24", fontSize: 13, fontWeight: 800,
+                    animation: "challenge-notify-in 0.3s ease",
+                    backdropFilter: "blur(10px)",
+                  }}>
+                    {challengeNotification}
+                  </div>
+                )}
+
+                {/* CHALLENGE QUEUED BADGE */}
+                {pendingChallenge && pendingChallenge.challengerIsA === iAmPlayerAVideo && isActivePhase && (
+                  <div style={{
+                    position: "absolute", top: 56, right: 16, zIndex: 25,
+                    padding: "6px 12px", borderRadius: 10,
+                    background: "rgba(168,85,247,.12)", border: "1px solid rgba(168,85,247,.25)",
+                    color: "#a855f7", fontSize: 11, fontWeight: 800,
+                    display: "flex", alignItems: "center", gap: 6,
+                  }}>
+                    ⚖️ Challenge Queued
+                  </div>
+                )}
+
+                {/* TOKEN INDICATORS — both players see each other's token count */}
+                {isActivePhase && (
+                  <div style={{
+                    position: "absolute", top: 56, left: 16, zIndex: 21,
+                    display: "flex", gap: 8, alignItems: "center",
+                  }}>
+                    <div style={{
+                      padding: "4px 10px", borderRadius: 8,
+                      background: myTokens > 0 ? "rgba(251,191,36,.10)" : "rgba(255,255,255,.04)",
+                      border: `1px solid ${myTokens > 0 ? "rgba(251,191,36,.20)" : "rgba(255,255,255,.06)"}`,
+                      fontSize: 10, fontWeight: 800,
+                      color: myTokens > 0 ? "#fbbf24" : "rgba(255,255,255,.20)",
+                    }}>
+                      ⚖️ {myTokens}
+                    </div>
+                    <div style={{
+                      padding: "4px 10px", borderRadius: 8,
+                      background: oppTokens > 0 ? "rgba(168,85,247,.08)" : "rgba(255,255,255,.04)",
+                      border: `1px solid ${oppTokens > 0 ? "rgba(168,85,247,.15)" : "rgba(255,255,255,.06)"}`,
+                      fontSize: 10, fontWeight: 800,
+                      color: oppTokens > 0 ? "#a855f7" : "rgba(255,255,255,.20)",
+                    }}>
+                      ⚖️ {oppTokens}
+                    </div>
+                  </div>
+                )}
+
+                {/* ═══ CHALLENGE INTERLUDE OVERLAY ═══ */}
+                {isChallengeReview && interludeStep > 0 && (
+                  <div className="challenge-interlude" style={{
+                    position: "absolute", inset: 0, zIndex: 30,
+                    background: "rgba(0,0,0,.85)", backdropFilter: "blur(12px)",
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                    gap: 16, padding: 24,
+                    animation: "challenge-fade-in 0.5s ease",
+                  }}>
+                    {/* FACT CHECK REVEAL */}
+                    {(!challengeResult || challengeResult.type === "fact_check") && (
+                      <>
+                        {interludeStep >= 1 && (
+                          <div style={{ animation: "challenge-drop 0.4s ease" }}>
+                            <Scale size={48} style={{ color: "#fbbf24", filter: "drop-shadow(0 0 20px rgba(251,191,36,.4))" }} />
+                          </div>
+                        )}
+                        {interludeStep >= 1 && (
+                          <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: ".12em", color: "#fbbf24", animation: "challenge-type 0.6s ease" }}>
+                            FACT CHECK
+                          </div>
+                        )}
+                        {interludeStep >= 2 && pendingChallengeRef.current && (
+                          <div style={{
+                            fontSize: 15, color: "rgba(255,255,255,.80)", textAlign: "center",
+                            maxWidth: 400, lineHeight: 1.5, animation: "challenge-fade-in 0.4s ease",
+                          }}>
+                            &ldquo;{pendingChallengeRef.current.claim}&rdquo;
+                          </div>
+                        )}
+
+                        {/* BLOCK WINDOW (edge case) */}
+                        {blockWindow && interludeStep >= 2 && (
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, animation: "challenge-fade-in 0.3s ease" }}>
+                            <button onClick={handleBlockChallenge} style={{
+                              padding: "12px 24px", borderRadius: 14,
+                              background: "rgba(168,85,247,.15)", border: "1px solid rgba(168,85,247,.35)",
+                              color: "#a855f7", fontSize: 14, fontWeight: 800,
+                              cursor: "pointer", fontFamily: "inherit",
+                              display: "flex", alignItems: "center", gap: 8,
+                              transition: "all .2s",
+                            }}>
+                              <Shield size={16} /> BLOCK ({blockTimer}s)
+                            </button>
+                            <span style={{ fontSize: 10, color: "rgba(255,255,255,.30)" }}>Costs your challenge token</span>
+                          </div>
+                        )}
+
+                        {interludeStep >= 3 && !challengeResult && (
+                          <div style={{
+                            fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,.50)",
+                            letterSpacing: ".08em", animation: "analyzing-pulse 1.5s ease infinite",
+                          }}>
+                            ANALYZING...
+                          </div>
+                        )}
+
+                        {interludeStep >= 4 && challengeResult?.type === "fact_check" && challengeResult.verdict && (
+                          <div style={{ animation: "verdict-slam 0.3s ease", textAlign: "center" }}>
+                            <div style={{
+                              fontSize: 36, fontWeight: 900, letterSpacing: ".06em",
+                              color: challengeResult.verdict === "FAKE_NEWS" ? "#ff4d3d"
+                                : challengeResult.verdict === "FACTS" ? "#22c55e"
+                                : challengeResult.verdict === "STRETCH" ? "#fbbf24"
+                                : "rgba(255,255,255,.40)",
+                              textShadow: challengeResult.verdict === "FAKE_NEWS" ? "0 0 40px rgba(255,77,61,.5)"
+                                : challengeResult.verdict === "FACTS" ? "0 0 40px rgba(34,197,94,.5)"
+                                : "none",
+                            }}>
+                              {challengeResult.verdict === "FAKE_NEWS" ? "🚨 FAKE NEWS"
+                                : challengeResult.verdict === "FACTS" ? "✅ FACTS"
+                                : challengeResult.verdict === "STRETCH" ? "⚠️ STRETCH"
+                                : "🤷 CAN'T VERIFY"}
+                            </div>
+                            {challengeXpDelta !== 0 && (
+                              <div style={{
+                                marginTop: 8, fontSize: 16, fontWeight: 800,
+                                color: challengeXpDelta > 0 ? "#22c55e" : "#ff4d3d",
+                              }}>
+                                {challengeXpDelta > 0 ? `+${challengeXpDelta}` : challengeXpDelta} XP
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {interludeStep >= 5 && challengeResult?.context && (
+                          <div style={{
+                            fontSize: 13, color: "rgba(255,255,255,.55)", textAlign: "center",
+                            maxWidth: 350, lineHeight: 1.5, animation: "challenge-fade-in 0.4s ease",
+                          }}>
+                            {challengeResult.context}
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* DENIED REVEAL */}
+                    {challengeResult?.type === "denied" && (
+                      <>
+                        {interludeStep >= 1 && (
+                          <div style={{ animation: "challenge-drop 0.4s ease" }}>
+                            <Shield size={48} style={{ color: "#a0a0a0", filter: "drop-shadow(0 0 20px rgba(160,160,160,.3))" }} />
+                          </div>
+                        )}
+                        {interludeStep >= 1 && (
+                          <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,.70)" }}>
+                            {challengeResult.speakerName === "You" ? (profile?.display_name || profile?.username || "You") : (opponent?.opponentDisplayName || "Opponent")}
+                          </div>
+                        )}
+                        {interludeStep >= 2 && (
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,.40)", letterSpacing: ".06em" }}>
+                            DENIES SAYING:
+                          </div>
+                        )}
+                        {interludeStep >= 2 && (
+                          <div style={{
+                            fontSize: 15, color: "rgba(255,77,61,.60)", textDecoration: "line-through",
+                            textAlign: "center", maxWidth: 380, lineHeight: 1.5,
+                          }}>
+                            &ldquo;{challengeResult.claim}&rdquo;
+                          </div>
+                        )}
+                        {interludeStep >= 3 && (
+                          <div style={{ fontSize: 16, fontWeight: 800, color: "rgba(255,255,255,.35)" }}>
+                            CHALLENGE VOIDED
+                          </div>
+                        )}
+                        {interludeStep >= 3 && (
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,.20)" }}>
+                            The crowd knows the truth 👀
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* BLOCKED REVEAL */}
+                    {challengeResult?.type === "blocked" && (
+                      <>
+                        {interludeStep >= 1 && (
+                          <div style={{ animation: "challenge-drop 0.4s ease" }}>
+                            <Shield size={48} style={{ color: "#a0a0a0" }} />
+                          </div>
+                        )}
+                        {interludeStep >= 2 && (
+                          <div style={{ fontSize: 20, fontWeight: 900, color: "rgba(255,255,255,.50)" }}>
+                            🛡️ BLOCKED
+                          </div>
+                        )}
+                        {interludeStep >= 3 && (
+                          <div style={{ fontSize: 13, color: "rgba(255,255,255,.30)" }}>
+                            Challenge voided before verdict
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {/* BOTTOM ACTION BAR */}
                 {isActivePhase && (
                   <div className="video-bottom" onClick={e => e.stopPropagation()}>
@@ -1846,6 +2409,48 @@ export default function Home() {
                       </>
                     ) : (
                       <>
+                        {/* FACT CHECK / DENY BUTTONS — above emoji bar */}
+                        {(canFactCheck || canDeny) && (
+                          <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 4 }}>
+                            {canFactCheck && !canDeny && (
+                              <button onClick={() => setShowChallengeModal(true)} className="btn-fact-check" style={{
+                                padding: "8px 16px", borderRadius: 12,
+                                background: "rgba(251,191,36,.10)", border: "1px solid rgba(251,191,36,.25)",
+                                color: "#fbbf24", fontSize: 12, fontWeight: 800,
+                                cursor: "pointer", fontFamily: "inherit",
+                                display: "flex", alignItems: "center", gap: 6,
+                                transition: "all .2s", letterSpacing: ".04em",
+                              }}>
+                                <Scale size={14} /> FACT CHECK
+                              </button>
+                            )}
+                            {canDeny && (
+                              <>
+                                <button onClick={() => setShowChallengeModal(true)} className="btn-fact-check" style={{
+                                  padding: "8px 14px", borderRadius: 12,
+                                  background: "rgba(251,191,36,.10)", border: "1px solid rgba(251,191,36,.25)",
+                                  color: "#fbbf24", fontSize: 11, fontWeight: 800,
+                                  cursor: "pointer", fontFamily: "inherit",
+                                  display: "flex", alignItems: "center", gap: 5,
+                                  transition: "all .2s",
+                                }}>
+                                  <Scale size={13} /> FACT CHECK
+                                </button>
+                                <button onClick={handleDenyChallenge} style={{
+                                  padding: "8px 14px", borderRadius: 12,
+                                  background: "rgba(168,85,247,.10)", border: "1px solid rgba(168,85,247,.25)",
+                                  color: "#a855f7", fontSize: 11, fontWeight: 800,
+                                  cursor: "pointer", fontFamily: "inherit",
+                                  display: "flex", alignItems: "center", gap: 5,
+                                  transition: "all .2s",
+                                }}>
+                                  <Shield size={13} /> I NEVER SAID THAT
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+
                         <div className="emoji-reaction-bar">
                           {REACTION_EMOJIS.map(e => (
                             <button key={e} className="emoji-btn" onClick={() => handleEmojiReact(e)}>
@@ -1866,6 +2471,77 @@ export default function Home() {
                         </form>
                       </>
                     )}
+                  </div>
+                )}
+
+                {/* FACT CHECK MODAL */}
+                {showChallengeModal && (
+                  <div style={{
+                    position: "absolute", inset: 0, zIndex: 35,
+                    background: "rgba(0,0,0,.75)", backdropFilter: "blur(8px)",
+                    display: "flex", alignItems: "flex-end", justifyContent: "center",
+                    padding: "0 16px 24px",
+                    animation: "challenge-fade-in 0.2s ease",
+                  }} onClick={() => setShowChallengeModal(false)}>
+                    <div onClick={e => e.stopPropagation()} style={{
+                      width: "100%", maxWidth: 420, padding: "24px 22px",
+                      borderRadius: 20, background: "rgba(20,20,28,.95)",
+                      border: "1px solid rgba(251,191,36,.20)",
+                      boxShadow: "0 20px 60px rgba(0,0,0,.6)",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                        <Scale size={20} style={{ color: "#fbbf24" }} />
+                        <span style={{ fontSize: 18, fontWeight: 900, color: "#fbbf24" }}>Challenge a Claim</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: "rgba(255,255,255,.40)", marginBottom: 12 }}>
+                        What did they say? Keep it short and specific.
+                      </div>
+                      <input
+                        type="text"
+                        value={challengeInput}
+                        onChange={e => setChallengeInput(e.target.value)}
+                        placeholder="Type the exact claim..."
+                        maxLength={120}
+                        autoFocus
+                        style={{
+                          width: "100%", height: 48, borderRadius: 14,
+                          background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)",
+                          color: "var(--text)", fontFamily: "inherit", fontSize: 14,
+                          padding: "0 16px", outline: "none", marginBottom: 8,
+                          boxSizing: "border-box",
+                        }}
+                        onKeyDown={e => { if (e.key === "Enter" && challengeInput.trim().length >= 12) handleSubmitChallenge(); }}
+                      />
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                        <span style={{ fontSize: 10, color: challengeInput.length < 12 ? "rgba(255,77,61,.60)" : "rgba(255,255,255,.25)" }}>
+                          {challengeInput.length}/120 {challengeInput.length < 12 && challengeInput.length > 0 ? "(min 12)" : ""}
+                        </span>
+                        <span style={{ fontSize: 10, color: "rgba(255,255,255,.25)" }}>
+                          ⚖️ {myTokens} token{myTokens !== 1 ? "s" : ""} remaining
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <button onClick={() => setShowChallengeModal(false)} style={{
+                          flex: 1, height: 44, borderRadius: 12,
+                          background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.10)",
+                          color: "rgba(255,255,255,.50)", fontFamily: "inherit", fontSize: 14, fontWeight: 700,
+                          cursor: "pointer",
+                        }}>
+                          Cancel
+                        </button>
+                        <button onClick={handleSubmitChallenge} disabled={challengeInput.trim().length < 12} style={{
+                          flex: 1, height: 44, borderRadius: 12,
+                          background: challengeInput.trim().length >= 12 ? "rgba(251,191,36,.15)" : "rgba(255,255,255,.04)",
+                          border: `1px solid ${challengeInput.trim().length >= 12 ? "rgba(251,191,36,.30)" : "rgba(255,255,255,.06)"}`,
+                          color: challengeInput.trim().length >= 12 ? "#fbbf24" : "rgba(255,255,255,.20)",
+                          fontFamily: "inherit", fontSize: 14, fontWeight: 800,
+                          cursor: challengeInput.trim().length >= 12 ? "pointer" : "default",
+                          letterSpacing: ".04em",
+                        }}>
+                          ⚖️ Submit
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

@@ -24,7 +24,11 @@ export interface LiveKitConnectOptions {
 export type DataMessage =
   | { type: "emoji"; emoji: string }
   | { type: "comment"; text: string }
-  | { type: "phase_advance"; nextPhase: string };
+  | { type: "phase_advance"; nextPhase: string }
+  | { type: "fact_check"; claim: string }
+  | { type: "deny_challenge" }
+  | { type: "block_challenge" }
+  | { type: "tokens_update"; tokens: number };
 
 export interface UseLiveKitRoomResult {
   room: Room | null;
