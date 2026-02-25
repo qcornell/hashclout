@@ -16,13 +16,13 @@ import { moderateMessage } from "@/lib/moderation";
 import { calculateXP, checkDailyReset, calculateStreak, type XPBreakdown } from "@/lib/xp";
 import { getAllRoundVotes } from "@/lib/round-voting";
 import {
-  initAudio, soundMatchFound, soundCountdownTick, soundGo, soundRoundTransition,
+  initAudio, preloadSounds, soundMatchFound, soundCountdownTick, soundGo, soundRoundTransition,
   soundYourTurn, soundOppTurn, soundTimerWarning, soundTimerCritical,
   soundMessageSent, soundMessageReceived, soundEmojiReact,
   soundVictory, soundDefeat, soundTie, soundXPEarned, soundDebateStart,
   soundClick, soundLockIn,
   soundFactCheckRumble, soundFakeNews, soundFactsVerified, soundStretch, soundDenied, soundChallengeQueued,
-} from "@/lib/sounds";
+} from "@/lib/sounds-lazy";
 import ForfeitGuard from "@/components/ForfeitGuard";
 
 /* ═══ TYPES ═══ */
@@ -1214,7 +1214,7 @@ export default function Home() {
 
   const handleStart = () => {
     if (gameState !== "idle") return;
-    initAudio(); // Unlock audio on first interaction
+    initAudio(); preloadSounds(); // Unlock audio + preload sounds module on first interaction
     // Require auth to play (but not while still loading)
     if (!authLoading && !user) {
       setShowAuthModal(true);

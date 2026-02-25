@@ -13,7 +13,7 @@
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
 body {
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: var(--font-inter, 'Inter'), -apple-system, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
