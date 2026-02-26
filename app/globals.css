@@ -36,11 +36,13 @@ body {
   background-size: 22px 22px;
   mask-image: radial-gradient(circle at 50% 35%, black 0%, black 40%, transparent 68%);
   -webkit-mask-image: radial-gradient(circle at 50% 35%, black 0%, black 40%, transparent 68%);
+  will-change: transform;
 }
 .bg-glow {
   position: absolute; width: 900px; height: 900px; border-radius: 999px;
   filter: blur(80px); opacity: .14; transform: translateZ(0);
   animation: drift-bg 14s ease-in-out infinite;
+  will-change: transform;
 }
 .bg-glow-1 { left: -240px; top: -260px; background: radial-gradient(circle, rgba(255,77,61,.8), transparent 60%); }
 .bg-glow-2 { right: -320px; top: 140px; background: radial-gradient(circle, rgba(115,47,109,.85), transparent 60%); animation-delay: -4s; }
@@ -1262,4 +1264,9 @@ body:has(.app-video) .mobile-tab-bar-global {
     right: 12px !important;
     bottom: auto !important;
   }
+}
+
+/* ═══ MOBILE PERFORMANCE ═══ */
+@media (max-width: 768px) {
+  .bg-glow { filter: blur(40px); opacity: .08; }
 }

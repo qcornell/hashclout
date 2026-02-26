@@ -24,6 +24,10 @@ import {
   soundFactCheckRumble, soundFakeNews, soundFactsVerified, soundStretch, soundDenied, soundChallengeQueued,
 } from "@/lib/sounds-lazy";
 import ForfeitGuard from "@/components/ForfeitGuard";
+import dynamic from "next/dynamic";
+const ResultsView = dynamic(() => import("@/components/views/ResultsView"), { ssr: false });
+const TextDebateView = dynamic(() => import("@/components/views/TextDebateView"), { ssr: false });
+const VideoDebateView = dynamic(() => import("@/components/views/VideoDebateView"), { ssr: false });
 
 /* ═══ TYPES ═══ */
 type GameState = "idle" | "prompted" | "chosen" | "format-select" | "matchmaking" | "searching" | "found" | "debating" | "ended";
@@ -1451,6 +1455,21 @@ export default function Home() {
     }
   };
 
+  /** Close the challenge modal — if phase was waiting, advance */
+  const handleCloseChallengeModal = useCallback(() => {
+    setShowChallengeModal(false);
+    if (phaseWaiting) {
+      setPhaseWaiting(false);
+      const next = getNextPhase(videoPhase || "");
+      if (isLiveMatch) livekit.sendData({ type: "phase_advance", nextPhase: next });
+      if (next === "END") {
+        setTimeout(() => { setGameState("ended"); setVideoPhase(null); }, 0);
+      } else {
+        setTimeout(() => setVideoPhase(next), 0);
+      }
+    }
+  }, [phaseWaiting, videoPhase, isLiveMatch, livekit]);
+
   /** Drive the challenge interlude animation sequence */
   const handleChallengeInterlude = async () => {
     const challenge = pendingChallengeRef.current;
@@ -2074,717 +2093,124 @@ export default function Home() {
 
           {/* ─── TEXT DEBATE ─── */}
           {gameState === "debating" && debateFormat === "text" && (
-            <div className="debate-view">
-              <div className="debate-header-bar">
-                <span className="debate-topic-label">{topicTitle}</span>
-                <span className="debate-format-badge dfb-text">{isLiveMatch ? "🔴 LIVE" : "⌨️ TEXT"}</span>
-                <div className={`debate-timer-box ${debateTimer <= 30 ? "timer-low" : ""}`}><Clock size={15} /><span>{formatTime(debateTimer)}</span></div>
-                <span className="debate-round-label">Round {textCurrentRound}/{totalRounds}</span>
-              </div>
-              <div className="debate-scores-bar">
-                <div className="score-card sc-user"><div className="sc-avatar"><User size={18} /></div><div className="sc-info"><span className="sc-side">{profile?.display_name || profile?.username || "You"} · {userSideLabel}</span><div className="sc-clout-row"><span className="sc-clout-value">{userClout}</span><span className="sc-clout-label">CLOUT</span></div></div></div>
-                <div className="score-vs-pill">VS</div>
-                <div className="score-card sc-opponent"><div className="sc-avatar"><User size={18} /></div><div className="sc-info"><span className="sc-side">{opponent?.opponentDisplayName || "Opponent"} · {oppSideLabel}</span><div className="sc-clout-row"><span className="sc-clout-value">{opponentClout}</span><span className="sc-clout-label">CLOUT</span></div></div></div>
-              </div>
-              <div className="messages-area">
-                {messages.map(msg => msg.sender === "system" ? (
-                  <div key={msg.id} className="msg-system">{msg.text}</div>
-                ) : (
-                  <div key={msg.id} className={`msg-bubble ${msg.sender === "user" ? "msg-user" : "msg-opponent"}`}>
-                    <div className="msg-sender-row"><span className="msg-sender-name">{msg.sender === "user" ? (profile?.display_name || profile?.username || "You") : (opponent?.opponentDisplayName || "Opponent")}</span>{msg.clout && <span className="msg-clout-badge">+{msg.clout} 🔥</span>}</div>
-                    <div className="msg-text">{msg.text}</div>
-                  </div>
-                ))}
-                {(opponentTyping || oppTyping) && <div className="typing-bubble"><span /><span /><span /></div>}
-                <div ref={messagesEndRef} />
-              </div>
-              {moderationWarning && (
-                <div style={{ padding: "8px 14px", margin: "0 0 6px", borderRadius: 10, background: "rgba(255,77,61,.08)", border: "1px solid rgba(255,77,61,.18)", color: "#ff7a45", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-                  <span>🛡️</span> {moderationWarning}
-                  <button onClick={() => setModerationWarning(null)} style={{ marginLeft: "auto", background: "none", border: "none", color: "rgba(255,255,255,.30)", cursor: "pointer", fontFamily: "inherit", fontSize: 14 }}>×</button>
-                </div>
-              )}
-              <div className="debate-input-bar">
-                <input type="text" className="debate-input" value={inputValue} onChange={e => { handleInputChange(e.target.value); if (moderationWarning) setModerationWarning(null); }} onKeyDown={e => e.key === "Enter" && handleSendMessage()} placeholder={isLiveMatch ? "Argue your point…" : "Make your argument…"} disabled={!isLiveMatch && opponentTyping} />
-                <button className="btn-send-debate" onClick={handleSendMessage} disabled={(!isLiveMatch && opponentTyping) || !inputValue.trim()}><Send size={16} /></button>
-                <button onClick={() => setShowExitConfirm(true)} style={{
-                  width: 42, height: 42, flexShrink: 0, borderRadius: 10,
-                  background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)",
-                  color: "rgba(255,255,255,.30)", fontSize: 18, cursor: "pointer",
-                  display: "grid", placeItems: "center",
-                }}>×</button>
-              </div>
-            </div>
+            <TextDebateView
+              topicTitle={topicTitle}
+              isLiveMatch={isLiveMatch}
+              debateTimer={debateTimer}
+              textCurrentRound={textCurrentRound}
+              totalRounds={totalRounds}
+              profile={profile}
+              opponent={opponent}
+              userSideLabel={userSideLabel}
+              oppSideLabel={oppSideLabel}
+              userClout={userClout}
+              opponentClout={opponentClout}
+              messages={messages}
+              inputValue={inputValue}
+              opponentTyping={opponentTyping}
+              oppTyping={oppTyping}
+              moderationWarning={moderationWarning}
+              messagesEndRef={messagesEndRef}
+              handleInputChange={handleInputChange}
+              handleSendMessage={handleSendMessage}
+              setModerationWarning={setModerationWarning}
+              setShowExitConfirm={setShowExitConfirm}
+            />
           )}
 
           {/* ─── VIDEO DEBATE — IMMERSIVE ─── */}
           {gameState === "debating" && debateFormat === "video" && (
-            <div className="video-debate">
-              <div className={`video-stage ${stageClass}`}>
-
-                {/* Self video feed — hidden by default for privacy */}
-                <video
-                  ref={selfVideoRef}
-                  autoPlay muted playsInline
-                  className={`stage-feed stage-feed-self ${(showSelf && cameraVisible) ? "" : "sf-hidden"}`}
-                />
-
-                {/* Self placeholder (when camera hidden) */}
-                {showSelf && !cameraVisible && (
-                  <div className="stage-feed stage-feed-opp">
-                    <div className="opp-placeholder-inner">
-                      <div className={`opp-audio-viz ${isUserSpeaking || isRapidFire ? "" : "viz-paused"}`}>
-                        {[...Array(7)].map((_, i) => <div key={i} className="opp-audio-bar" style={{ animationDelay: `${i * 0.12}s`, background: "linear-gradient(to top, var(--accentA), var(--accentB))" }} />)}
-                      </div>
-                      <div className="opp-avatar-big" style={{ background: "rgba(255,77,61,.12)", borderColor: "rgba(255,77,61,.20)" }}><User size={48} /></div>
-                      <div className="opp-side-label" style={{ color: "#ff7a45" }}>{userSideLabel}</div>
-                      {isUserSpeaking && <div className="opp-speaking-label">🎤 You're Speaking…</div>}
-                      {isRapidFire && <div className="opp-speaking-label">⚡ Rapid Fire</div>}
-                    </div>
-                  </div>
-                )}
-
-                {/* Opponent video feed (LiveKit remote) or placeholder fallback */}
-                <div className={`stage-feed stage-feed-opp ${showOpp ? "" : "sf-hidden"}`}>
-                  {livekit.remoteVideoTrack ? (
-                    <>
-                      <video
-                        ref={remoteVideoRef}
-                        autoPlay playsInline
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      />
-                      <div className="opp-side-label" style={{ position: "absolute", top: 60, left: "50%", transform: "translateX(-50%)" }}>{oppSideLabel}</div>
-                    </>
-                  ) : (
-                    <div className="opp-placeholder-inner">
-                      <div className={`opp-audio-viz ${isOppSpeaking || isRapidFire ? "" : "viz-paused"}`}>
-                        {[...Array(7)].map((_, i) => <div key={i} className="opp-audio-bar" style={{ animationDelay: `${i * 0.12}s` }} />)}
-                      </div>
-                      <div className="opp-avatar-big"><User size={48} /></div>
-                      <div className="opp-side-label">{oppSideLabel}</div>
-                      {isOppSpeaking && <div className="opp-speaking-label">🎤 Speaking…</div>}
-                      {isRapidFire && <div className="opp-speaking-label">⚡ Rapid Fire</div>}
-                      {isCountdownPhase && showOpp && <div className="opp-speaking-label">Getting ready…</div>}
-                      {livekit.connected && !livekit.remoteVideoTrack && <div className="opp-speaking-label">Waiting for opponent&apos;s camera…</div>}
-                    </div>
-                  )}
-                </div>
-                {/* Hidden audio element for opponent's audio */}
-                <audio ref={remoteAudioRef} autoPlay />
-
-                {/* ROUND INTRO SPLASH */}
-                {isIntroPhase && (
-                  <div className="round-splash">
-                    <div className="round-splash-num">ROUND {roundInfo.num}</div>
-                    <div className="round-splash-title">{roundInfo.title}</div>
-                    <div className="round-splash-bar" />
-                    <div className="round-splash-desc">{roundInfo.desc}</div>
-                  </div>
-                )}
-
-                {/* COUNTDOWN OVERLAY */}
-                {isCountdownPhase && (
-                  <div className="video-countdown-overlay">
-                    <div className="video-countdown-num" key={phaseTimer}>{phaseTimer}</div>
-                    <div className="video-countdown-label">{showSelf ? "Your turn — get ready" : "Opponent up next"}</div>
-                  </div>
-                )}
-
-                {/* HUD TOP — turn badge far left, timer centered (absolute so they don't interact) */}
-                {isActivePhase && (
-                  <div className="video-hud-top" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 20 }}>
-                    <div className={`vturn-badge ${isUserSpeaking ? "vturn-you" : isRapidFire ? "vturn-rapid" : "vturn-opp"}`}>
-                      {isUserSpeaking ? "🎤 YOUR TURN" : isRapidFire ? "⚡ RAPID FIRE" : "👁 LISTENING"}
-                    </div>
-
-                    <div className="video-hud-timer">
-                      <CircleTimer seconds={phaseTimer} max={phaseMax} />
-                    </div>
-                  </div>
-                )}
-
-                {/* SENTIMENT, VIEWERS, MIC STATUS — hidden (kept in bottom bar poll instead) */}
-
-                {/* FLOATING EMOJIS */}
-                {floatingEmojis.map(fe => (
-                  <div key={fe.id} className="emoji-float" style={{ right: `${fe.x}%`, bottom: "110px" }}>{fe.emoji}</div>
-                ))}
-
-                {/* COMMENTS OVERLAY */}
-                {(isActivePhase || isCountdownPhase) && videoComments.length > 0 && (
-                  <div className="video-comments-area">
-                    {videoComments.slice(-4).map(vc => (
-                      <div key={vc.id} className={`video-comment ${vc.sender === "user" ? "vc-user" : "vc-opp"}`}>
-                        <span className="vc-name">{vc.sender === "user" ? "You" : "Opp"}</span>
-                        <span className="vc-text">{vc.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* CAMERA TOGGLE — icon only, desktop: bottom-right above exit, mobile: top-right */}
-                {isActivePhase && (
-                  <button onClick={(e) => { e.stopPropagation(); setCameraVisible(!cameraVisible); }} className="camera-toggle-btn" style={{
-                    position: "absolute", zIndex: 22,
-                    width: 40, height: 40, borderRadius: 999,
-                    background: cameraVisible ? "rgba(34,197,94,.20)" : "rgba(255,255,255,.12)",
-                    border: `2px solid ${cameraVisible ? "rgba(34,197,94,.45)" : "rgba(255,255,255,.20)"}`,
-                    color: cameraVisible ? "#22c55e" : "rgba(255,255,255,.55)",
-                    cursor: "pointer",
-                    display: "grid", placeItems: "center",
-                    transition: "all .2s",
-                    boxShadow: cameraVisible ? "0 2px 12px rgba(34,197,94,.25)" : "0 2px 12px rgba(0,0,0,.3)",
-                    /* Default: desktop position — bottom right above exit */
-                    bottom: 56, right: 16, top: "auto",
-                  }}>
-                    {cameraVisible ? <Video size={18} /> : <VideoOff size={18} />}
-                  </button>
-                )}
-
-                {/* WAITING FOR OPPONENT FACT CHECK — full dark overlay */}
-                {challengeNotification === "__WAITING__" && (
-                  <div style={{
-                    position: "absolute", inset: 0, zIndex: 40,
-                    background: "rgba(7,7,12,.95)",
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                    gap: 20,
-                  }}>
-                    <Scale size={40} style={{ color: "#fbbf24", opacity: 0.7 }} />
-                    <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,.80)", letterSpacing: ".06em" }}>
-                      FACT CHECK IN PROGRESS
-                    </div>
-                    <div style={{ fontSize: 14, color: "rgba(255,255,255,.40)", fontWeight: 600 }}>
-                      Opponent is submitting a fact check...
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fbbf24", animation: "analyzing-pulse 1.2s ease infinite" }} />
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fbbf24", animation: "analyzing-pulse 1.2s ease 0.3s infinite" }} />
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fbbf24", animation: "analyzing-pulse 1.2s ease 0.6s infinite" }} />
-                    </div>
-                  </div>
-                )}
-
-                {/* CHALLENGE NOTIFICATION BANNER (normal, e.g. "You've been challenged!") */}
-                {challengeNotification && challengeNotification !== "__WAITING__" && isActivePhase && (
-                  <div className="challenge-notification" style={{
-                    position: "absolute", top: 56, left: "50%", transform: "translateX(-50%)",
-                    zIndex: 25, padding: "8px 18px", borderRadius: 12,
-                    background: "rgba(251,191,36,.12)", border: "1px solid rgba(251,191,36,.30)",
-                    color: "#fbbf24", fontSize: 13, fontWeight: 800,
-                    animation: "challenge-notify-in 0.3s ease",
-                  }}>
-                    {challengeNotification}
-                  </div>
-                )}
-
-                {/* CHALLENGE QUEUED BADGE */}
-                {pendingChallenge && pendingChallenge.challengerIsA === iAmPlayerAVideo && isActivePhase && (
-                  <div style={{
-                    position: "absolute", top: 56, right: 16, zIndex: 25,
-                    padding: "6px 12px", borderRadius: 10,
-                    background: "rgba(168,85,247,.12)", border: "1px solid rgba(168,85,247,.25)",
-                    color: "#a855f7", fontSize: 11, fontWeight: 800,
-                    display: "flex", alignItems: "center", gap: 6,
-                  }}>
-                    ⚖️ Challenge Queued
-                  </div>
-                )}
-
-                {/* TOKEN INDICATORS — both players see each other's token count */}
-                {isActivePhase && (
-                  <div style={{
-                    position: "absolute", top: 56, left: 16, zIndex: 21,
-                    display: "flex", gap: 8, alignItems: "center",
-                  }}>
-                    <div style={{
-                      padding: "5px 12px", borderRadius: 10,
-                      background: myTokens > 0 ? "rgba(251,191,36,.15)" : "rgba(255,255,255,.05)",
-                      border: `1.5px solid ${myTokens > 0 ? "rgba(251,191,36,.35)" : "rgba(255,255,255,.08)"}`,
-                      fontSize: 11, fontWeight: 900,
-                      color: myTokens > 0 ? "#fbbf24" : "rgba(255,255,255,.25)",
-                      boxShadow: myTokens > 0 ? "0 2px 10px rgba(251,191,36,.20)" : "none",
-                    }}>
-                      ⚖️ {myTokens}
-                    </div>
-                    <div style={{
-                      padding: "5px 12px", borderRadius: 10,
-                      background: oppTokens > 0 ? "rgba(168,85,247,.12)" : "rgba(255,255,255,.05)",
-                      border: `1.5px solid ${oppTokens > 0 ? "rgba(168,85,247,.30)" : "rgba(255,255,255,.08)"}`,
-                      fontSize: 11, fontWeight: 900,
-                      color: oppTokens > 0 ? "#c084fc" : "rgba(255,255,255,.25)",
-                      boxShadow: oppTokens > 0 ? "0 2px 10px rgba(168,85,247,.20)" : "none",
-                    }}>
-                      ⚖️ {oppTokens}
-                    </div>
-                  </div>
-                )}
-
-                {/* ═══ CHALLENGE INTERLUDE OVERLAY ═══ */}
-                {isChallengeReview && interludeStep > 0 && (
-                  <div className="challenge-interlude" style={{
-                    position: "absolute", inset: 0, zIndex: 30,
-                    background: "rgba(0,0,0,.85)", backdropFilter: "blur(12px)",
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                    gap: 16, padding: 24,
-                    animation: "challenge-fade-in 0.5s ease",
-                  }}>
-                    {/* FACT CHECK REVEAL */}
-                    {(!challengeResult || challengeResult.type === "fact_check") && (
-                      <>
-                        {interludeStep >= 1 && (
-                          <div style={{ animation: "challenge-drop 0.4s ease" }}>
-                            <Scale size={48} style={{ color: "#fbbf24", filter: "drop-shadow(0 0 20px rgba(251,191,36,.4))" }} />
-                          </div>
-                        )}
-                        {interludeStep >= 1 && (
-                          <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: ".12em", color: "#fbbf24", animation: "challenge-type 0.6s ease" }}>
-                            FACT CHECK
-                          </div>
-                        )}
-                        {interludeStep >= 2 && pendingChallengeRef.current && (
-                          <div style={{
-                            fontSize: 15, color: "rgba(255,255,255,.80)", textAlign: "center",
-                            maxWidth: 400, lineHeight: 1.5, animation: "challenge-fade-in 0.4s ease",
-                          }}>
-                            &ldquo;{pendingChallengeRef.current.claim}&rdquo;
-                          </div>
-                        )}
-
-                        {/* BLOCK WINDOW (edge case) */}
-                        {blockWindow && interludeStep >= 2 && (
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, animation: "challenge-fade-in 0.3s ease" }}>
-                            <button onClick={handleBlockChallenge} style={{
-                              padding: "12px 24px", borderRadius: 14,
-                              background: "rgba(168,85,247,.15)", border: "1px solid rgba(168,85,247,.35)",
-                              color: "#a855f7", fontSize: 14, fontWeight: 800,
-                              cursor: "pointer", fontFamily: "inherit",
-                              display: "flex", alignItems: "center", gap: 8,
-                              transition: "all .2s",
-                            }}>
-                              <Shield size={16} /> BLOCK ({blockTimer}s)
-                            </button>
-                            <span style={{ fontSize: 10, color: "rgba(255,255,255,.30)" }}>Costs your challenge token</span>
-                          </div>
-                        )}
-
-                        {interludeStep >= 3 && !challengeResult && (
-                          <div style={{
-                            fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,.50)",
-                            letterSpacing: ".08em", animation: "analyzing-pulse 1.5s ease infinite",
-                          }}>
-                            ANALYZING...
-                          </div>
-                        )}
-
-                        {interludeStep >= 4 && challengeResult?.type === "fact_check" && challengeResult.verdict && (
-                          <div style={{ animation: "verdict-slam 0.3s ease", textAlign: "center" }}>
-                            <div style={{
-                              fontSize: 36, fontWeight: 900, letterSpacing: ".06em",
-                              color: challengeResult.verdict === "FAKE_NEWS" ? "#ff4d3d"
-                                : challengeResult.verdict === "FACTS" ? "#22c55e"
-                                : challengeResult.verdict === "STRETCH" ? "#fbbf24"
-                                : "rgba(255,255,255,.40)",
-                              textShadow: challengeResult.verdict === "FAKE_NEWS" ? "0 0 40px rgba(255,77,61,.5)"
-                                : challengeResult.verdict === "FACTS" ? "0 0 40px rgba(34,197,94,.5)"
-                                : "none",
-                            }}>
-                              {challengeResult.verdict === "FAKE_NEWS" ? "🚨 FAKE NEWS"
-                                : challengeResult.verdict === "FACTS" ? "✅ FACTS"
-                                : challengeResult.verdict === "STRETCH" ? "⚠️ STRETCH"
-                                : "🤷 CAN'T VERIFY"}
-                            </div>
-                            {challengeXpDelta !== 0 && (
-                              <div style={{
-                                marginTop: 8, fontSize: 16, fontWeight: 800,
-                                color: challengeXpDelta > 0 ? "#22c55e" : "#ff4d3d",
-                              }}>
-                                {challengeXpDelta > 0 ? `+${challengeXpDelta}` : challengeXpDelta} XP
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {interludeStep >= 5 && challengeResult?.context && (
-                          <div style={{
-                            fontSize: 13, color: "rgba(255,255,255,.55)", textAlign: "center",
-                            maxWidth: 350, lineHeight: 1.5, animation: "challenge-fade-in 0.4s ease",
-                          }}>
-                            {challengeResult.context}
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* DENIED REVEAL */}
-                    {challengeResult?.type === "denied" && (
-                      <>
-                        {interludeStep >= 1 && (
-                          <div style={{ animation: "challenge-drop 0.4s ease" }}>
-                            <Shield size={48} style={{ color: "#a0a0a0", filter: "drop-shadow(0 0 20px rgba(160,160,160,.3))" }} />
-                          </div>
-                        )}
-                        {interludeStep >= 1 && (
-                          <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,.70)" }}>
-                            {challengeResult.speakerName === "You" ? (profile?.display_name || profile?.username || "You") : (opponent?.opponentDisplayName || "Opponent")}
-                          </div>
-                        )}
-                        {interludeStep >= 2 && (
-                          <div style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,.40)", letterSpacing: ".06em" }}>
-                            DENIES SAYING:
-                          </div>
-                        )}
-                        {interludeStep >= 2 && (
-                          <div style={{
-                            fontSize: 15, color: "rgba(255,77,61,.60)", textDecoration: "line-through",
-                            textAlign: "center", maxWidth: 380, lineHeight: 1.5,
-                          }}>
-                            &ldquo;{challengeResult.claim}&rdquo;
-                          </div>
-                        )}
-                        {interludeStep >= 3 && (
-                          <div style={{ fontSize: 16, fontWeight: 800, color: "rgba(255,255,255,.35)" }}>
-                            CHALLENGE VOIDED
-                          </div>
-                        )}
-                        {interludeStep >= 3 && (
-                          <div style={{ fontSize: 11, color: "rgba(255,255,255,.20)" }}>
-                            The crowd knows the truth 👀
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* BLOCKED REVEAL */}
-                    {challengeResult?.type === "blocked" && (
-                      <>
-                        {interludeStep >= 1 && (
-                          <div style={{ animation: "challenge-drop 0.4s ease" }}>
-                            <Shield size={48} style={{ color: "#a0a0a0" }} />
-                          </div>
-                        )}
-                        {interludeStep >= 2 && (
-                          <div style={{ fontSize: 20, fontWeight: 900, color: "rgba(255,255,255,.50)" }}>
-                            🛡️ BLOCKED
-                          </div>
-                        )}
-                        {interludeStep >= 3 && (
-                          <div style={{ fontSize: 13, color: "rgba(255,255,255,.30)" }}>
-                            Challenge voided before verdict
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* BOTTOM ACTION BAR */}
-                {isActivePhase && (
-                  <div className="video-bottom" onClick={e => e.stopPropagation()}>
-                    {/* Sentiment poll — compact inline */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 6 }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, color: "var(--green)" }}>{Math.round(sentimentPct)}%</span>
-                      <div style={{ width: 80, height: 3, borderRadius: 2, background: "rgba(255,255,255,.08)", overflow: "hidden" }}>
-                        <div style={{ height: "100%", borderRadius: 2, background: "var(--green)", width: `${sentimentPct}%`, transition: "width .5s" }} />
-                      </div>
-                      <span style={{ fontSize: 10, fontWeight: 800, color: "var(--accentA)" }}>{Math.round(100 - sentimentPct)}%</span>
-                    </div>
-
-                    {isUserSpeaking ? (
-                      <>
-                        <button className="btn-yield" onClick={handleYield}>Done Speaking ⏩</button>
-                        {/* DENY button visible even during YOUR speaking turn if you've been challenged */}
-                        {canDeny && (
-                          <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
-                            <button onClick={handleDenyChallenge} style={{
-                              padding: "8px 14px", borderRadius: 12,
-                              background: "rgba(168,85,247,.10)", border: "1px solid rgba(168,85,247,.25)",
-                              color: "#a855f7", fontSize: 11, fontWeight: 800,
-                              cursor: "pointer", fontFamily: "inherit",
-                              display: "flex", alignItems: "center", gap: 5,
-                              transition: "all .2s",
-                            }}>
-                              <Shield size={13} /> I NEVER SAID THAT
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {/* FACT CHECK / DENY BUTTONS — above emoji bar */}
-                        {(canFactCheck || canDeny) && (
-                          <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 4 }}>
-                            {canFactCheck && !canDeny && (
-                              <button onClick={() => setShowChallengeModal(true)} className="btn-fact-check" style={{
-                                padding: "8px 16px", borderRadius: 12,
-                                background: "rgba(251,191,36,.10)", border: "1px solid rgba(251,191,36,.25)",
-                                color: "#fbbf24", fontSize: 12, fontWeight: 800,
-                                cursor: "pointer", fontFamily: "inherit",
-                                display: "flex", alignItems: "center", gap: 6,
-                                transition: "all .2s", letterSpacing: ".04em",
-                              }}>
-                                <Scale size={14} /> FACT CHECK
-                              </button>
-                            )}
-                            {canDeny && (
-                              <>
-                                <button onClick={() => setShowChallengeModal(true)} className="btn-fact-check" style={{
-                                  padding: "8px 14px", borderRadius: 12,
-                                  background: "rgba(251,191,36,.10)", border: "1px solid rgba(251,191,36,.25)",
-                                  color: "#fbbf24", fontSize: 11, fontWeight: 800,
-                                  cursor: "pointer", fontFamily: "inherit",
-                                  display: "flex", alignItems: "center", gap: 5,
-                                  transition: "all .2s",
-                                }}>
-                                  <Scale size={13} /> FACT CHECK
-                                </button>
-                                <button onClick={handleDenyChallenge} style={{
-                                  padding: "8px 14px", borderRadius: 12,
-                                  background: "rgba(168,85,247,.10)", border: "1px solid rgba(168,85,247,.25)",
-                                  color: "#a855f7", fontSize: 11, fontWeight: 800,
-                                  cursor: "pointer", fontFamily: "inherit",
-                                  display: "flex", alignItems: "center", gap: 5,
-                                  transition: "all .2s",
-                                }}>
-                                  <Shield size={13} /> I NEVER SAID THAT
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="emoji-reaction-bar">
-                          {REACTION_EMOJIS.map(e => (
-                            <button key={e} className="emoji-btn" onClick={() => handleEmojiReact(e)}>
-                              {e}
-                              {(emojiCounts[e] || 0) > 0 && <span className="emoji-btn-count">{emojiCounts[e]}</span>}
-                            </button>
-                          ))}
-                        </div>
-                        <form className="video-comment-wrap" onSubmit={e => { e.preventDefault(); handleSendVideoComment(); (document.activeElement as HTMLElement)?.blur(); }}>
-                          <input type="text" className="video-comment-input" value={commentInput} onChange={e => setCommentInput(e.target.value)} placeholder="Type a comment…" enterKeyHint="send" />
-                          <button type="submit" className="btn-send-comment"><Send size={14} /></button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setShowExitConfirm(true); }} style={{
-                            width: 34, height: 34, flexShrink: 0, borderRadius: 10,
-                            background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)",
-                            color: "rgba(255,255,255,.30)", fontSize: 16, cursor: "pointer",
-                            display: "grid", placeItems: "center",
-                          }}>×</button>
-                        </form>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* FACT CHECK MODAL */}
-                {showChallengeModal && (
-                  <div style={{
-                    position: "absolute", inset: 0, zIndex: 35,
-                    background: "rgba(0,0,0,.80)",
-                    display: "flex", alignItems: "flex-start", justifyContent: "center",
-                    paddingTop: "15vh", paddingLeft: 16, paddingRight: 16,
-                    animation: "challenge-fade-in 0.2s ease",
-                  }} onClick={() => { setShowChallengeModal(false); if (phaseWaiting) { setPhaseWaiting(false); const next = getNextPhase(videoPhase || ""); if (isLiveMatch) livekit.sendData({ type: "phase_advance", nextPhase: next }); if (next === "END") { setTimeout(() => { setGameState("ended"); setVideoPhase(null); }, 0); } else { setTimeout(() => setVideoPhase(next), 0); } } }}>
-                    <div onClick={e => e.stopPropagation()} style={{
-                      width: "100%", maxWidth: 420, padding: "24px 22px",
-                      borderRadius: 20, background: "rgba(20,20,28,.95)",
-                      border: "1px solid rgba(251,191,36,.20)",
-                      boxShadow: "0 20px 60px rgba(0,0,0,.6)",
-                    }}>
-                      {phaseWaiting && (
-                        <div style={{ padding: "8px 14px", marginBottom: 12, borderRadius: 10, background: "rgba(255,77,61,.08)", border: "1px solid rgba(255,77,61,.18)", color: "#ff7a45", fontSize: 11, fontWeight: 700, textAlign: "center" }}>
-                          ⏱ Round timer ended — submit or cancel to continue
-                        </div>
-                      )}
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                        <Scale size={20} style={{ color: "#fbbf24" }} />
-                        <span style={{ fontSize: 18, fontWeight: 900, color: "#fbbf24" }}>Challenge a Claim</span>
-                      </div>
-                      <div style={{ fontSize: 12, color: "rgba(255,255,255,.40)", marginBottom: 12 }}>
-                        What did they say? Keep it short and specific.
-                      </div>
-                      <input
-                        type="text"
-                        value={challengeInput}
-                        onChange={e => setChallengeInput(e.target.value)}
-                        placeholder="Type the exact claim..."
-                        maxLength={120}
-                        autoFocus
-                        style={{
-                          width: "100%", height: 48, borderRadius: 14,
-                          background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)",
-                          color: "var(--text)", fontFamily: "inherit", fontSize: 14,
-                          padding: "0 16px", outline: "none", marginBottom: 8,
-                          boxSizing: "border-box",
-                        }}
-                        onKeyDown={e => { if (e.key === "Enter" && challengeInput.trim().length >= 12) handleSubmitChallenge(); }}
-                      />
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                        <span style={{ fontSize: 10, color: challengeInput.length < 12 ? "rgba(255,77,61,.60)" : "rgba(255,255,255,.25)" }}>
-                          {challengeInput.length}/120 {challengeInput.length < 12 && challengeInput.length > 0 ? "(min 12)" : ""}
-                        </span>
-                        <span style={{ fontSize: 10, color: "rgba(255,255,255,.25)" }}>
-                          ⚖️ {myTokens} token{myTokens !== 1 ? "s" : ""} remaining
-                        </span>
-                      </div>
-                      <div style={{ display: "flex", gap: 10 }}>
-                        <button onClick={() => setShowChallengeModal(false)} style={{
-                          flex: 1, height: 44, borderRadius: 12,
-                          background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.10)",
-                          color: "rgba(255,255,255,.50)", fontFamily: "inherit", fontSize: 14, fontWeight: 700,
-                          cursor: "pointer",
-                        }}>
-                          Cancel
-                        </button>
-                        <button onClick={handleSubmitChallenge} disabled={challengeInput.trim().length < 12} style={{
-                          flex: 1, height: 44, borderRadius: 12,
-                          background: challengeInput.trim().length >= 12 ? "rgba(251,191,36,.15)" : "rgba(255,255,255,.04)",
-                          border: `1px solid ${challengeInput.trim().length >= 12 ? "rgba(251,191,36,.30)" : "rgba(255,255,255,.06)"}`,
-                          color: challengeInput.trim().length >= 12 ? "#fbbf24" : "rgba(255,255,255,.20)",
-                          fontFamily: "inherit", fontSize: 14, fontWeight: 800,
-                          cursor: challengeInput.trim().length >= 12 ? "pointer" : "default",
-                          letterSpacing: ".04em",
-                        }}>
-                          ⚖️ Submit
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <VideoDebateView
+              selfVideoRef={selfVideoRef}
+              remoteVideoRef={remoteVideoRef}
+              remoteAudioRef={remoteAudioRef}
+              iAmPlayerAVideo={iAmPlayerAVideo}
+              videoPhase={videoPhase}
+              phaseTimer={phaseTimer}
+              phaseMax={phaseMax}
+              roundInfo={roundInfo}
+              isIntroPhase={isIntroPhase}
+              isMyCountdown={isMyCountdown}
+              isOppCountdown={isOppCountdown}
+              isCountdownPhase={isCountdownPhase}
+              isUserSpeaking={isUserSpeaking}
+              isOppSpeaking={isOppSpeaking}
+              isRapidFire={isRapidFire}
+              isChallengeReview={isChallengeReview}
+              isActivePhase={isActivePhase}
+              showSelf={showSelf}
+              showOpp={showOpp}
+              stageClass={stageClass}
+              cameraVisible={cameraVisible}
+              setCameraVisible={setCameraVisible}
+              remoteVideoTrack={livekit.remoteVideoTrack}
+              connected={livekit.connected}
+              userClout={userClout}
+              opponentClout={opponentClout}
+              sentimentPct={sentimentPct}
+              userSideLabel={userSideLabel}
+              oppSideLabel={oppSideLabel}
+              profile={profile}
+              opponent={opponent}
+              floatingEmojis={floatingEmojis}
+              videoComments={videoComments}
+              commentInput={commentInput}
+              setCommentInput={setCommentInput}
+              emojiCounts={emojiCounts}
+              myTokens={myTokens}
+              oppTokens={oppTokens}
+              canFactCheck={canFactCheck}
+              canDeny={canDeny}
+              pendingChallenge={pendingChallenge}
+              challengeResult={challengeResult}
+              challengeNotification={challengeNotification}
+              showChallengeModal={showChallengeModal}
+              setShowChallengeModal={setShowChallengeModal}
+              challengeInput={challengeInput}
+              setChallengeInput={setChallengeInput}
+              interludeStep={interludeStep}
+              blockWindow={blockWindow}
+              blockTimer={blockTimer}
+              challengeXpDelta={challengeXpDelta}
+              phaseWaiting={phaseWaiting}
+              isLiveMatch={isLiveMatch}
+              pendingChallengeRef={pendingChallengeRef}
+              handleYield={handleYield}
+              handleEmojiReact={handleEmojiReact}
+              handleSendVideoComment={handleSendVideoComment}
+              handleSubmitChallenge={handleSubmitChallenge}
+              handleDenyChallenge={handleDenyChallenge}
+              handleBlockChallenge={handleBlockChallenge}
+              setShowExitConfirm={setShowExitConfirm}
+              handleCloseChallengeModal={handleCloseChallengeModal}
+            />
           )}
 
           {/* ─── RESULTS ─── */}
           {gameState === "ended" && (
-            <div className="results-view">
-              <div className="results-card">
-                <div className="results-overline">DEBATE OVER</div>
-                <div className={`results-verdict ${isTie ? "verdict-tie" : isWin ? "verdict-win" : "verdict-lose"}`}>
-                  {isTie ? "IT'S A TIE" : isWin ? "🏆 YOU WIN!" : "OPPONENT WINS"}
-                </div>
-
-                {/* ELO + XP row */}
-                {profile && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 12, marginTop: -8 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: eloDelta > 0 ? "#22c55e" : eloDelta < 0 ? "#ff4d3d" : "rgba(255,255,255,.40)" }}>
-                      {eloDelta > 0 ? `+${eloDelta}` : eloDelta === 0 ? "±0" : `${eloDelta}`} ELO
-                    </div>
-                    {xpResult && (
-                      <div style={{ fontSize: 14, fontWeight: 800, color: xpResult.finalXP > 0 ? "#fbbf24" : "#ff4d3d" }}>
-                        {xpResult.finalXP > 0 ? `+${xpResult.finalXP.toLocaleString()}` : xpResult.finalXP.toLocaleString()} XP
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* XP Breakdown */}
-                {xpResult && xpResult.finalXP > 0 && (
-                  <div style={{
-                    padding: "14px 18px", borderRadius: 14, marginBottom: 16,
-                    background: "rgba(251,191,36,.04)", border: "1px solid rgba(251,191,36,.10)",
-                    textAlign: "left",
-                  }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: "rgba(251,191,36,.5)", marginBottom: 8 }}>XP BREAKDOWN</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ color: "rgba(255,255,255,.45)" }}>Completion</span>
-                        <span style={{ fontWeight: 800, color: "rgba(255,255,255,.70)" }}>+{xpResult.base.toLocaleString()}</span>
-                      </div>
-                      {xpResult.matchResult > 0 && (
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span style={{ color: "rgba(255,255,255,.45)" }}>{isWin ? "Win Bonus" : "Participation"}</span>
-                          <span style={{ fontWeight: 800, color: isWin ? "#22c55e" : "rgba(255,255,255,.70)" }}>+{xpResult.matchResult.toLocaleString()}</span>
-                        </div>
-                      )}
-                      {xpResult.voteMarginBonus > 0 && (
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span style={{ color: "rgba(255,255,255,.45)" }}>Vote Margin</span>
-                          <span style={{ fontWeight: 800, color: "#fbbf24" }}>+{xpResult.voteMarginBonus.toLocaleString()}</span>
-                        </div>
-                      )}
-                      {xpResult.aiQualityBonus > 0 && (
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span style={{ color: "rgba(255,255,255,.45)" }}>Quality Bonus</span>
-                          <span style={{ fontWeight: 800, color: "#a855f7" }}>+{xpResult.aiQualityBonus.toLocaleString()}</span>
-                        </div>
-                      )}
-                      {xpResult.diminishingMultiplier < 1 && (
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span style={{ color: "rgba(255,255,255,.30)" }}>Daily Cap</span>
-                          <span style={{ fontWeight: 700, color: "rgba(255,255,255,.30)" }}>×{xpResult.diminishingMultiplier}</span>
-                        </div>
-                      )}
-                      {xpResult.streakMultiplier > 1 && (
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span style={{ color: "rgba(255,255,255,.45)" }}>🔥 Streak Bonus</span>
-                          <span style={{ fontWeight: 800, color: "#ff7a45" }}>×{xpResult.streakMultiplier}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* AI Feedback */}
-                {(aiFeedback || aiProcessing) && (
-                  <div style={{
-                    padding: "14px 18px", borderRadius: 14, marginBottom: 16,
-                    background: isWin ? "rgba(34,197,94,.04)" : "rgba(168,85,247,.04)",
-                    border: `1px solid ${isWin ? "rgba(34,197,94,.10)" : "rgba(168,85,247,.10)"}`,
-                    textAlign: "left",
-                  }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: isWin ? "rgba(34,197,94,.5)" : "rgba(168,85,247,.5)", marginBottom: 8 }}>
-                      🤖 AI JUDGE
-                    </div>
-                    {aiProcessing && !aiFeedback ? (
-                      <div style={{ fontSize: 12, color: "rgba(255,255,255,.35)", fontStyle: "italic" }}>Analyzing your debate...</div>
-                    ) : (
-                      <div style={{ fontSize: 13, color: "rgba(255,255,255,.75)", lineHeight: 1.6 }}>{aiFeedback}</div>
-                    )}
-                  </div>
-                )}
-
-                {/* XP Progress Bar */}
-                {profile && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.30)", marginBottom: 6 }}>
-                      <span>{((profile as any).xp_total || 0).toLocaleString()} XP</span>
-                      <span>1,000,000 XP</span>
-                    </div>
-                    <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,.06)", overflow: "hidden" }}>
-                      <div style={{
-                        height: "100%", borderRadius: 999,
-                        background: "linear-gradient(90deg, #fbbf24, #ff7a45)",
-                        width: `${Math.min(100, (((profile as any).xp_total || 0) / 1000000) * 100)}%`,
-                        transition: "width 1s ease",
-                        boxShadow: "0 0 12px rgba(251,191,36,.3)",
-                      }} />
-                    </div>
-                  </div>
-                )}
-
-                <div className="results-score-row">
-                  <div className="result-score rs-user"><span className="result-score-label">{profile?.display_name || "You"}</span><span className="result-score-num">{userClout}</span><span className="result-score-sub">{userSideLabel}</span></div>
-                  <div className="results-divider">VS</div>
-                  <div className="result-score rs-opp"><span className="result-score-label">{opponent?.opponentDisplayName || "Opponent"}</span><span className="result-score-num">{opponentClout}</span><span className="result-score-sub">{oppSideLabel}</span></div>
-                </div>
-                <div className="results-stats-row">
-                  {debateFormat === "video" ? (
-                    <>
-                      <span className="results-stat"><strong>{userSpeakTime}s</strong> speaking</span>
-                      <span className="results-stat"><strong>{Object.values(emojiCounts).reduce((a, b) => a + b, 0)}</strong> reactions</span>
-                      <span className="results-stat"><strong>{videoComments.filter(c => c.sender === "user").length}</strong> comments</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="results-stat"><strong>{userMsgCount}</strong> arguments made</span>
-                      <span className="results-stat"><strong>{Math.ceil((180 - debateTimer) / 60)}</strong> min debated</span>
-                      <span className="results-stat">Round <strong>{textCurrentRound}</strong>/{totalRounds}</span>
-                    </>
-                  )}
-                </div>
-                <button className="btn btn-primary btn-play-again" onClick={handlePlayAgain}><Play size={15} fill="white" stroke="white" /> PLAY AGAIN</button>
-              </div>
-            </div>
+            <ResultsView
+              isWin={isWin}
+              isTie={isTie}
+              profile={profile}
+              eloDelta={eloDelta}
+              xpResult={xpResult}
+              aiFeedback={aiFeedback}
+              aiProcessing={aiProcessing}
+              userClout={userClout}
+              opponentClout={opponentClout}
+              userSideLabel={userSideLabel}
+              oppSideLabel={oppSideLabel}
+              opponent={opponent}
+              debateFormat={debateFormat}
+              userSpeakTime={userSpeakTime}
+              emojiCounts={emojiCounts}
+              videoComments={videoComments}
+              userMsgCount={userMsgCount}
+              debateTimer={debateTimer}
+              textCurrentRound={textCurrentRound}
+              totalRounds={totalRounds}
+              handlePlayAgain={handlePlayAgain}
+            />
           )}
         </main>
       </div>
