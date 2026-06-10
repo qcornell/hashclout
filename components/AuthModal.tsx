@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { X, Mail, Lock, User, Loader2 } from "lucide-react";
 
@@ -11,7 +11,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ open, onClose, initialTab = "signin" }: AuthModalProps) {
-  const { signIn, signUp, signInWithFacebook } = useAuth();
+  const { signIn, signUp } = useAuth();
   const [tab, setTab] = useState<"signin" | "signup">(initialTab);
 
   // Sync tab with initialTab when modal opens
@@ -25,6 +25,11 @@ export default function AuthModal({ open, onClose, initialTab = "signin" }: Auth
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Track where a mouse-press started so a text-selection drag that ends on the
+  // backdrop doesn't close the modal. We only close when BOTH the press and the
+  // release happen on the overlay itself.
+  const mouseDownOnOverlay = useRef(false);
 
   if (!open) return null;
 
@@ -111,7 +116,14 @@ export default function AuthModal({ open, onClose, initialTab = "signin" }: Auth
   };
 
   return (
-    <div style={overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      style={overlay}
+      onMouseDown={(e) => { mouseDownOnOverlay.current = e.target === e.currentTarget; }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownOnOverlay.current) onClose();
+        mouseDownOnOverlay.current = false;
+      }}
+    >
       <div style={card}>
         <div style={inner}>
           {/* Close */}
@@ -178,25 +190,8 @@ export default function AuthModal({ open, onClose, initialTab = "signin" }: Auth
               <button type="submit" style={btnPrimary} disabled={loading}>
                 {loading ? <Loader2 size={18} style={{ animation: "mmq-spin .6s linear infinite" }} /> : "Sign In"}
               </button>
-
-              {/* Divider */}
-              <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
-                <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,.06)" }} />
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,.20)", fontWeight: 600 }}>OR</span>
-                <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,.06)" }} />
-              </div>
-
-              {/* Facebook */}
-              <button type="button" onClick={signInWithFacebook} style={{
-                width: "100%", height: 46, borderRadius: 12, border: "1px solid rgba(255,255,255,.08)",
-                background: "rgba(66,103,178,.12)", color: "#8b9dc3",
-                fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                transition: "background .15s",
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                Continue with Facebook
-              </button>
+              {/* Facebook OAuth temporarily disabled — re-enable once the Facebook
+                  provider is configured in Supabase and an /auth/callback route exists. */}
             </form>
           )}
 
@@ -227,25 +222,8 @@ export default function AuthModal({ open, onClose, initialTab = "signin" }: Auth
               <button type="submit" style={btnPrimary} disabled={loading}>
                 {loading ? <Loader2 size={18} style={{ animation: "mmq-spin .6s linear infinite" }} /> : "Create Account"}
               </button>
-
-              {/* Divider */}
-              <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
-                <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,.06)" }} />
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,.20)", fontWeight: 600 }}>OR</span>
-                <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,.06)" }} />
-              </div>
-
-              {/* Facebook */}
-              <button type="button" onClick={signInWithFacebook} style={{
-                width: "100%", height: 46, borderRadius: 12, border: "1px solid rgba(255,255,255,.08)",
-                background: "rgba(66,103,178,.12)", color: "#8b9dc3",
-                fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                transition: "background .15s",
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                Continue with Facebook
-              </button>
+              {/* Facebook OAuth temporarily disabled — re-enable once the Facebook
+                  provider is configured in Supabase and an /auth/callback route exists. */}
             </form>
           )}
         </div>
