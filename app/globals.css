@@ -1350,3 +1350,21 @@ body:has(.app-video) .mobile-tab-bar-global {
   .ctimer-box .ctimer-text { font-size: 13px; }
   .vturn-badge { left: 12px; top: 12px; }
 }
+
+/* ===== Video HUD refinements: legibility + thumbs reactions ===== */
+/* Turn pill — add shadow for contrast over bright video, brighter YOUR TURN */
+.vturn-badge { text-shadow: 0 1px 3px rgba(0,0,0,.55); }
+.vturn-you { background: rgba(214,52,40,.60); color: #ffffff; border: 1px solid rgba(255,150,120,.75); }
+.vturn-opp { background: rgba(150,70,225,.42); color: #ffffff; border: 1px solid rgba(200,150,255,.7); }
+.vturn-rapid { background: rgba(214,140,8,.50); color: #fff7e6; border: 1px solid rgba(255,205,120,.7); }
+
+/* Thumbs up / down reactions */
+.vbar-react {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 12px;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.85); font-family: inherit; font-size: 13px; font-weight: 800;
+  cursor: pointer; transition: transform .12s ease, background .12s ease;
+}
+.vbar-react:hover { background: rgba(255,255,255,.14); }
+.vbar-react:active { transform: scale(.9); }

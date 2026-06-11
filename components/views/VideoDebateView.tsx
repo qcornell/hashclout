@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { User, Send, Video, VideoOff, Scale, Shield, Mic, Ear, Zap, Share2, MessageCircle } from "lucide-react";
+import { User, Send, Video, VideoOff, Scale, Shield, Mic, Ear, Zap, Share2, ThumbsUp, ThumbsDown } from "lucide-react";
 import type { MatchResult } from "@/lib/matchmaking";
 import type { RefObject } from "react";
 import type { RemoteTrack } from "livekit-client";
@@ -131,6 +131,7 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
     cameraVisible, setCameraVisible, remoteVideoTrack, connected,
     userSideLabel, oppSideLabel, profile, opponent,
     videoComments, commentInput, setCommentInput,
+    emojiCounts, handleEmojiReact,
     myTokens, canFactCheck, canDeny,
     pendingChallenge, challengeResult, challengeNotification,
     showChallengeModal, setShowChallengeModal, challengeInput, setChallengeInput,
@@ -169,6 +170,9 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
     }
   };
 
+  const likes = emojiCounts["👍"] || 0;
+  const dislikes = emojiCounts["👎"] || 0;
+
   return (
     <div className="video-debate">
       <div className={`video-stage ${stageClass}`}>
@@ -204,7 +208,7 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
                 autoPlay playsInline
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
-              <div className="opp-side-label" style={{ position: "absolute", top: 60, left: "50%", transform: "translateX(-50%)" }}>{oppSideLabel}</div>
+              <div className="opp-side-label" style={{ position: "absolute", top: 92, left: "50%", transform: "translateX(-50%)" }}>{oppSideLabel}</div>
             </>
           ) : (
             <div className="opp-placeholder-inner">
@@ -256,18 +260,6 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
           </div>
         )}
 
-        {/* COMMENTS OVERLAY */}
-        {(isActivePhase || isCountdownPhase) && videoComments.length > 0 && (
-          <div className="video-comments-area">
-            {videoComments.slice(-4).map(vc => (
-              <div key={vc.id} className={`video-comment ${vc.sender === "user" ? "vc-user" : "vc-opp"}`}>
-                <span className="vc-name">{vc.sender === "user" ? "You" : "Opp"}</span>
-                <span className="vc-text">{vc.text}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* CAMERA TOGGLE (top-right) */}
         {isActivePhase && (
           <button onClick={(e) => { e.stopPropagation(); setCameraVisible(!cameraVisible); }} className="camera-toggle-btn" style={{
@@ -311,7 +303,7 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
         {/* CHALLENGE NOTIFICATION BANNER */}
         {challengeNotification && challengeNotification !== "__WAITING__" && isActivePhase && (
           <div className="challenge-notification" style={{
-            position: "absolute", top: 64, left: "50%", transform: "translateX(-50%)",
+            position: "absolute", top: 92, left: "50%", transform: "translateX(-50%)",
             zIndex: 25, padding: "8px 18px", borderRadius: 12,
             background: "rgba(251,191,36,.12)", border: "1px solid rgba(251,191,36,.30)",
             color: "#fbbf24", fontSize: 13, fontWeight: 800,
@@ -340,11 +332,12 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "5px 11px", borderRadius: 10,
-              background: myTokens > 0 ? "rgba(245,158,11,.18)" : "rgba(10,10,16,.50)",
-              border: `1px solid ${myTokens > 0 ? "rgba(245,158,11,.45)" : "rgba(255,255,255,.10)"}`,
+              background: myTokens > 0 ? "rgba(16,12,4,.62)" : "rgba(10,10,16,.55)",
+              border: `1px solid ${myTokens > 0 ? "rgba(245,158,11,.60)" : "rgba(255,255,255,.10)"}`,
               backdropFilter: "blur(10px)",
               fontSize: 12, fontWeight: 900,
-              color: myTokens > 0 ? "#fbbf24" : "rgba(255,255,255,.40)",
+              color: myTokens > 0 ? "#fcd34d" : "rgba(255,255,255,.40)",
+              textShadow: "0 1px 3px rgba(0,0,0,.5)",
             }}>
               <Scale size={13} /> {myTokens}
             </div>
@@ -536,14 +529,17 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
               )
             )}
 
-            {/* Share + comment count */}
+            {/* Reactions + share */}
             <div className="vbar-actions">
+              <button type="button" className="vbar-react" onClick={() => handleEmojiReact("👍")} aria-label="Thumbs up">
+                <ThumbsUp size={16} />{likes > 0 && <span>{likes}</span>}
+              </button>
+              <button type="button" className="vbar-react" onClick={() => handleEmojiReact("👎")} aria-label="Thumbs down">
+                <ThumbsDown size={16} />{dislikes > 0 && <span>{dislikes}</span>}
+              </button>
               <button type="button" className="vbar-action" onClick={handleShare}>
                 <Share2 size={15} /> Share
               </button>
-              <div className="vbar-stat">
-                <MessageCircle size={15} /> {videoComments.length}
-              </div>
             </div>
 
             <form className="video-comment-wrap" onSubmit={e => { e.preventDefault(); handleSendVideoComment(); (document.activeElement as HTMLElement)?.blur(); }}>
