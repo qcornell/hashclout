@@ -1,6 +1,7 @@
 "use client";
 
-import { User, Send, Video, VideoOff, Scale, Shield } from "lucide-react";
+import { useState, useRef } from "react";
+import { User, Send, Video, VideoOff, Scale, Shield, Mic, Ear, Zap, Share2, MessageCircle } from "lucide-react";
 import type { MatchResult } from "@/lib/matchmaking";
 import type { RefObject } from "react";
 import type { RemoteTrack } from "livekit-client";
@@ -21,6 +22,7 @@ export interface ChallengeResult {
 }
 
 export interface VideoDebateViewProps {
+  matchId: string | null;
   selfVideoRef: RefObject<HTMLVideoElement>;
   remoteVideoRef: RefObject<HTMLVideoElement>;
   remoteAudioRef: RefObject<HTMLAudioElement>;
@@ -85,47 +87,87 @@ export interface VideoDebateViewProps {
   handleCloseChallengeModal: () => void;
 }
 
-const REACTION_EMOJIS = ["👍", "👎", "🔥", "💯", "😂", "🤯"];
+function fmtTime(s: number) {
+  const safe = Math.max(0, s);
+  const m = Math.floor(safe / 60);
+  const sec = safe % 60;
+  return `${m}:${String(sec).padStart(2, "0")}`;
+}
 
 function CircleTimer({ seconds, max }: { seconds: number; max: number }) {
-  const r = 22, c = 2 * Math.PI * r;
-  const pct = max > 0 ? seconds / max : 0;
+  const r = 26, c = 2 * Math.PI * r;
+  const pct = max > 0 ? Math.max(0, Math.min(1, seconds / max)) : 0;
   const offset = c * (1 - pct);
   const low = seconds <= 10;
   return (
-    <div className="ctimer">
-      <svg width="56" height="56" viewBox="0 0 56 56">
-        <circle cx="28" cy="28" r={r} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="3" />
-        <circle cx="28" cy="28" r={r} fill="none"
-          stroke={low ? "var(--accentA)" : "var(--accentB)"}
-          strokeWidth="3" strokeDasharray={c} strokeDashoffset={offset}
-          strokeLinecap="round" transform="rotate(-90 28 28)"
+    <div className="ctimer-box">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <defs>
+          <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ff4d6d" />
+            <stop offset="100%" stopColor="#a855f7" />
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(255,255,255,.10)" strokeWidth="4" />
+        <circle cx="32" cy="32" r={r} fill="none"
+          stroke={low ? "#ff4d3d" : "url(#timerGrad)"}
+          strokeWidth="4" strokeDasharray={c} strokeDashoffset={offset}
+          strokeLinecap="round" transform="rotate(-90 32 32)"
           style={{ transition: "stroke-dashoffset 1s linear" }}
         />
       </svg>
-      <span className={`ctimer-text ${low ? "ctimer-low" : ""}`}>{seconds}</span>
+      <span className={`ctimer-text ${low ? "ctimer-low" : ""}`}>{fmtTime(seconds)}</span>
     </div>
   );
 }
 
 export default function VideoDebateView(props: VideoDebateViewProps) {
   const {
+    matchId,
     selfVideoRef, remoteVideoRef, remoteAudioRef,
     iAmPlayerAVideo, videoPhase, phaseTimer, phaseMax, roundInfo,
     isIntroPhase, isCountdownPhase, isUserSpeaking, isOppSpeaking,
     isRapidFire, isChallengeReview, isActivePhase, showSelf, showOpp, stageClass,
     cameraVisible, setCameraVisible, remoteVideoTrack, connected,
-    userSideLabel, oppSideLabel, profile, opponent, sentimentPct,
-    floatingEmojis, videoComments, commentInput, setCommentInput, emojiCounts,
-    myTokens, oppTokens, canFactCheck, canDeny,
+    userSideLabel, oppSideLabel, profile, opponent,
+    videoComments, commentInput, setCommentInput,
+    myTokens, canFactCheck, canDeny,
     pendingChallenge, challengeResult, challengeNotification,
     showChallengeModal, setShowChallengeModal, challengeInput, setChallengeInput,
     interludeStep, blockWindow, blockTimer, challengeXpDelta, phaseWaiting,
     isLiveMatch, pendingChallengeRef,
-    handleYield, handleEmojiReact, handleSendVideoComment,
+    handleYield, handleSendVideoComment,
     handleSubmitChallenge, handleDenyChallenge, handleBlockChallenge,
     setShowExitConfirm, handleCloseChallengeModal,
   } = props;
+
+  // Share-link feedback toast
+  const [shareToast, setShareToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = (msg: string) => {
+    setShareToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setShareToast(null), 2200);
+  };
+  const handleShare = async () => {
+    if (typeof window === "undefined" || !matchId) return;
+    const url = `${window.location.origin}/watch/${matchId}`;
+    // Mobile: native share sheet. Desktop / no support: copy to clipboard.
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: "HashClout", text: "Watch my debate live on HashClout", url });
+        return;
+      } catch (err: any) {
+        if (err && err.name === "AbortError") return; // user dismissed the sheet
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast("Link copied!");
+    } catch {
+      showToast("Couldn't copy link");
+    }
+  };
 
   return (
     <div className="video-debate">
@@ -202,18 +244,17 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
         {isActivePhase && (
           <div className="video-hud-top" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 20 }}>
             <div className={`vturn-badge ${isUserSpeaking ? "vturn-you" : isRapidFire ? "vturn-rapid" : "vturn-opp"}`}>
-              {isUserSpeaking ? "🎤 YOUR TURN" : isRapidFire ? "⚡ RAPID FIRE" : "👁 LISTENING"}
+              {isUserSpeaking
+                ? <><Mic size={14} /> YOUR TURN</>
+                : isRapidFire
+                  ? <><Zap size={14} /> RAPID FIRE</>
+                  : <><Ear size={14} /> LISTENING</>}
             </div>
             <div className="video-hud-timer">
               <CircleTimer seconds={phaseTimer} max={phaseMax} />
             </div>
           </div>
         )}
-
-        {/* FLOATING EMOJIS */}
-        {floatingEmojis.map(fe => (
-          <div key={fe.id} className="emoji-float" style={{ right: `${fe.x}%`, bottom: "110px" }}>{fe.emoji}</div>
-        ))}
 
         {/* COMMENTS OVERLAY */}
         {(isActivePhase || isCountdownPhase) && videoComments.length > 0 && (
@@ -227,21 +268,20 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
           </div>
         )}
 
-        {/* CAMERA TOGGLE */}
+        {/* CAMERA TOGGLE (top-right) */}
         {isActivePhase && (
           <button onClick={(e) => { e.stopPropagation(); setCameraVisible(!cameraVisible); }} className="camera-toggle-btn" style={{
             position: "absolute", zIndex: 22,
-            width: 40, height: 40, borderRadius: 999,
-            background: cameraVisible ? "rgba(34,197,94,.20)" : "rgba(255,255,255,.12)",
-            border: `2px solid ${cameraVisible ? "rgba(34,197,94,.45)" : "rgba(255,255,255,.20)"}`,
-            color: cameraVisible ? "#22c55e" : "rgba(255,255,255,.55)",
-            cursor: "pointer",
-            display: "grid", placeItems: "center",
-            transition: "all .2s",
-            boxShadow: cameraVisible ? "0 2px 12px rgba(34,197,94,.25)" : "0 2px 12px rgba(0,0,0,.3)",
-            bottom: 56, right: 16, top: "auto",
+            width: 44, height: 44, borderRadius: 14,
+            background: "rgba(10,10,16,.55)", backdropFilter: "blur(10px)",
+            border: `1px solid ${cameraVisible ? "rgba(34,197,94,.45)" : "rgba(255,255,255,.16)"}`,
+            color: cameraVisible ? "#fff" : "rgba(255,255,255,.55)",
+            cursor: "pointer", display: "grid", placeItems: "center",
+            transition: "all .2s", boxShadow: "0 4px 16px rgba(0,0,0,.4)",
+            top: 14, right: 16, bottom: "auto",
           }}>
             {cameraVisible ? <Video size={18} /> : <VideoOff size={18} />}
+            {cameraVisible && <span style={{ position: "absolute", top: 7, right: 7, width: 7, height: 7, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,.85)" }} />}
           </button>
         )}
 
@@ -271,7 +311,7 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
         {/* CHALLENGE NOTIFICATION BANNER */}
         {challengeNotification && challengeNotification !== "__WAITING__" && isActivePhase && (
           <div className="challenge-notification" style={{
-            position: "absolute", top: 56, left: "50%", transform: "translateX(-50%)",
+            position: "absolute", top: 64, left: "50%", transform: "translateX(-50%)",
             zIndex: 25, padding: "8px 18px", borderRadius: 12,
             background: "rgba(251,191,36,.12)", border: "1px solid rgba(251,191,36,.30)",
             color: "#fbbf24", fontSize: 13, fontWeight: 800,
@@ -284,7 +324,7 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
         {/* CHALLENGE QUEUED BADGE */}
         {pendingChallenge && pendingChallenge.challengerIsA === iAmPlayerAVideo && isActivePhase && (
           <div style={{
-            position: "absolute", top: 56, right: 16, zIndex: 25,
+            position: "absolute", top: 68, right: 16, zIndex: 25,
             padding: "6px 12px", borderRadius: 10,
             background: "rgba(168,85,247,.12)", border: "1px solid rgba(168,85,247,.25)",
             color: "#a855f7", fontSize: 11, fontWeight: 800,
@@ -294,31 +334,19 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
           </div>
         )}
 
-        {/* TOKEN INDICATORS */}
+        {/* CHALLENGE TOKEN INDICATOR (yours) */}
         {isActivePhase && (
-          <div style={{
-            position: "absolute", top: 56, left: 16, zIndex: 21,
-            display: "flex", gap: 8, alignItems: "center",
-          }}>
+          <div style={{ position: "absolute", top: 60, left: 16, zIndex: 21 }}>
             <div style={{
-              padding: "5px 12px", borderRadius: 10,
-              background: myTokens > 0 ? "rgba(251,191,36,.15)" : "rgba(255,255,255,.05)",
-              border: `1.5px solid ${myTokens > 0 ? "rgba(251,191,36,.35)" : "rgba(255,255,255,.08)"}`,
-              fontSize: 11, fontWeight: 900,
-              color: myTokens > 0 ? "#fbbf24" : "rgba(255,255,255,.25)",
-              boxShadow: myTokens > 0 ? "0 2px 10px rgba(251,191,36,.20)" : "none",
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "5px 11px", borderRadius: 10,
+              background: myTokens > 0 ? "rgba(245,158,11,.18)" : "rgba(10,10,16,.50)",
+              border: `1px solid ${myTokens > 0 ? "rgba(245,158,11,.45)" : "rgba(255,255,255,.10)"}`,
+              backdropFilter: "blur(10px)",
+              fontSize: 12, fontWeight: 900,
+              color: myTokens > 0 ? "#fbbf24" : "rgba(255,255,255,.40)",
             }}>
-              ⚖️ {myTokens}
-            </div>
-            <div style={{
-              padding: "5px 12px", borderRadius: 10,
-              background: oppTokens > 0 ? "rgba(168,85,247,.12)" : "rgba(255,255,255,.05)",
-              border: `1.5px solid ${oppTokens > 0 ? "rgba(168,85,247,.30)" : "rgba(255,255,255,.08)"}`,
-              fontSize: 11, fontWeight: 900,
-              color: oppTokens > 0 ? "#c084fc" : "rgba(255,255,255,.25)",
-              boxShadow: oppTokens > 0 ? "0 2px 10px rgba(168,85,247,.20)" : "none",
-            }}>
-              ⚖️ {oppTokens}
+              <Scale size={13} /> {myTokens}
             </div>
           </div>
         )}
@@ -484,98 +512,50 @@ export default function VideoDebateView(props: VideoDebateViewProps) {
         {/* BOTTOM ACTION BAR */}
         {isActivePhase && (
           <div className="video-bottom" onClick={e => e.stopPropagation()}>
-            {/* Sentiment poll — compact inline */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 10, fontWeight: 800, color: "var(--green)" }}>{Math.round(sentimentPct)}%</span>
-              <div style={{ width: 80, height: 3, borderRadius: 2, background: "rgba(255,255,255,.08)", overflow: "hidden" }}>
-                <div style={{ height: "100%", borderRadius: 2, background: "var(--green)", width: `${sentimentPct}%`, transition: "width .5s" }} />
-              </div>
-              <span style={{ fontSize: 10, fontWeight: 800, color: "var(--accentA)" }}>{Math.round(100 - sentimentPct)}%</span>
-            </div>
-
             {isUserSpeaking ? (
               <>
                 <button className="btn-yield" onClick={handleYield}>Done Speaking ⏩</button>
                 {canDeny && (
-                  <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
-                    <button onClick={handleDenyChallenge} style={{
-                      padding: "8px 14px", borderRadius: 12,
-                      background: "rgba(168,85,247,.10)", border: "1px solid rgba(168,85,247,.25)",
-                      color: "#a855f7", fontSize: 11, fontWeight: 800,
-                      cursor: "pointer", fontFamily: "inherit",
-                      display: "flex", alignItems: "center", gap: 5,
-                      transition: "all .2s",
-                    }}>
-                      <Shield size={13} /> I NEVER SAID THAT
-                    </button>
-                  </div>
+                  <button onClick={handleDenyChallenge} className="vbar-deny">
+                    <Shield size={13} /> I NEVER SAID THAT
+                  </button>
                 )}
               </>
             ) : (
-              <>
-                {(canFactCheck || canDeny) && (
-                  <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 4 }}>
-                    {canFactCheck && !canDeny && (
-                      <button onClick={() => setShowChallengeModal(true)} className="btn-fact-check" style={{
-                        padding: "8px 16px", borderRadius: 12,
-                        background: "rgba(251,191,36,.10)", border: "1px solid rgba(251,191,36,.25)",
-                        color: "#fbbf24", fontSize: 12, fontWeight: 800,
-                        cursor: "pointer", fontFamily: "inherit",
-                        display: "flex", alignItems: "center", gap: 6,
-                        transition: "all .2s", letterSpacing: ".04em",
-                      }}>
-                        <Scale size={14} /> FACT CHECK
-                      </button>
-                    )}
-                    {canDeny && (
-                      <>
-                        <button onClick={() => setShowChallengeModal(true)} className="btn-fact-check" style={{
-                          padding: "8px 14px", borderRadius: 12,
-                          background: "rgba(251,191,36,.10)", border: "1px solid rgba(251,191,36,.25)",
-                          color: "#fbbf24", fontSize: 11, fontWeight: 800,
-                          cursor: "pointer", fontFamily: "inherit",
-                          display: "flex", alignItems: "center", gap: 5,
-                          transition: "all .2s",
-                        }}>
-                          <Scale size={13} /> FACT CHECK
-                        </button>
-                        <button onClick={handleDenyChallenge} style={{
-                          padding: "8px 14px", borderRadius: 12,
-                          background: "rgba(168,85,247,.10)", border: "1px solid rgba(168,85,247,.25)",
-                          color: "#a855f7", fontSize: 11, fontWeight: 800,
-                          cursor: "pointer", fontFamily: "inherit",
-                          display: "flex", alignItems: "center", gap: 5,
-                          transition: "all .2s",
-                        }}>
-                          <Shield size={13} /> I NEVER SAID THAT
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                <div className="emoji-reaction-bar">
-                  {REACTION_EMOJIS.map(e => (
-                    <button key={e} className="emoji-btn" onClick={() => handleEmojiReact(e)}>
-                      {e}
-                      {(emojiCounts[e] || 0) > 0 && <span className="emoji-btn-count">{emojiCounts[e]}</span>}
+              (canFactCheck || canDeny) && (
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                  <button onClick={() => setShowChallengeModal(true)} className="btn-fc-primary">
+                    <Scale size={16} /> FACT CHECK
+                  </button>
+                  {canDeny && (
+                    <button onClick={handleDenyChallenge} className="vbar-deny">
+                      <Shield size={13} /> I NEVER SAID THAT
                     </button>
-                  ))}
+                  )}
                 </div>
-                <form className="video-comment-wrap" onSubmit={e => { e.preventDefault(); handleSendVideoComment(); (document.activeElement as HTMLElement)?.blur(); }}>
-                  <input type="text" className="video-comment-input" value={commentInput} onChange={e => setCommentInput(e.target.value)} placeholder="Type a comment…" enterKeyHint="send" />
-                  <button type="submit" className="btn-send-comment"><Send size={14} /></button>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowExitConfirm(true); }} style={{
-                    width: 34, height: 34, flexShrink: 0, borderRadius: 10,
-                    background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)",
-                    color: "rgba(255,255,255,.30)", fontSize: 16, cursor: "pointer",
-                    display: "grid", placeItems: "center",
-                  }}>×</button>
-                </form>
-              </>
+              )
             )}
+
+            {/* Share + comment count */}
+            <div className="vbar-actions">
+              <button type="button" className="vbar-action" onClick={handleShare}>
+                <Share2 size={15} /> Share
+              </button>
+              <div className="vbar-stat">
+                <MessageCircle size={15} /> {videoComments.length}
+              </div>
+            </div>
+
+            <form className="video-comment-wrap" onSubmit={e => { e.preventDefault(); handleSendVideoComment(); (document.activeElement as HTMLElement)?.blur(); }}>
+              <input type="text" className="video-comment-input" value={commentInput} onChange={e => setCommentInput(e.target.value)} placeholder="Type a comment…" enterKeyHint="send" />
+              <button type="submit" className="btn-send-comment"><Send size={14} /></button>
+              <button type="button" aria-label="Leave debate" onClick={(e) => { e.stopPropagation(); setShowExitConfirm(true); }} className="vbar-exit">×</button>
+            </form>
           </div>
         )}
+
+        {/* SHARE TOAST */}
+        {shareToast && <div className="vshare-toast">{shareToast}</div>}
 
         {/* FACT CHECK MODAL */}
         {showChallengeModal && (

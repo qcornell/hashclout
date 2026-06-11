@@ -2125,6 +2125,7 @@ export default function Home() {
               remoteVideoRef={remoteVideoRef}
               remoteAudioRef={remoteAudioRef}
               iAmPlayerAVideo={iAmPlayerAVideo}
+              matchId={matchId}
               videoPhase={videoPhase}
               phaseTimer={phaseTimer}
               phaseMax={phaseMax}

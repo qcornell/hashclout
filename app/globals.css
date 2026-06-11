@@ -1270,3 +1270,83 @@ body:has(.app-video) .mobile-tab-bar-global {
 @media (max-width: 768px) {
   .bg-glow { filter: blur(40px); opacity: .08; }
 }
+
+/* ===== Video debate UI refresh — cleaner HUD, gradient timer, share ===== */
+.ctimer-box {
+  position: relative; width: 64px; height: 64px; border-radius: 18px;
+  background: rgba(10,10,16,.55); backdrop-filter: blur(10px);
+  display: grid; place-items: center; box-shadow: 0 4px 16px rgba(0,0,0,.45);
+}
+.ctimer-box svg { width: 64px; height: 64px; display: block; }
+.ctimer-box .ctimer-text { font-size: 15px; }
+.video-hud-timer { top: 12px; }
+
+/* Turn badge — moved left, higher contrast */
+.vturn-badge {
+  left: 20px; right: auto; top: 14px;
+  background: rgba(12,12,18,.62); backdrop-filter: blur(12px);
+  box-shadow: 0 4px 18px rgba(0,0,0,.45);
+}
+.vturn-badge svg { flex-shrink: 0; }
+.vturn-you { background: rgba(255,77,61,.30); color: #ff9a7a; border: 1px solid rgba(255,77,61,.55); }
+.vturn-opp { background: rgba(168,85,247,.28); color: #c9a2ff; border: 1px solid rgba(168,85,247,.55); }
+.vturn-rapid { background: rgba(245,158,11,.28); color: #ffd27a; border: 1px solid rgba(245,158,11,.55); }
+
+/* Prominent gold fact-check button */
+.btn-fc-primary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 26px; border-radius: 16px; border: none;
+  background: linear-gradient(135deg, #f7c44a, #f59e0b);
+  color: #2a1c02; font-family: inherit; font-size: 14px; font-weight: 900; letter-spacing: .04em;
+  cursor: pointer; box-shadow: 0 8px 24px rgba(245,158,11,.35);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.btn-fc-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(245,158,11,.45); }
+.btn-fc-primary:active { transform: scale(.97); }
+
+.vbar-deny {
+  display: flex; align-items: center; gap: 5px;
+  padding: 10px 16px; border-radius: 12px;
+  background: rgba(168,85,247,.12); border: 1px solid rgba(168,85,247,.28);
+  color: #c084fc; font-family: inherit; font-size: 12px; font-weight: 800;
+  cursor: pointer; transition: all .15s ease;
+}
+.vbar-deny:hover { background: rgba(168,85,247,.2); }
+
+/* Bottom actions strip: Share + comment count */
+.vbar-actions { display: flex; align-items: center; justify-content: center; gap: 16px; }
+.vbar-action {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 16px; border-radius: 12px;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.88); font-family: inherit; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all .15s ease;
+}
+.vbar-action:hover { background: rgba(255,255,255,.14); }
+.vbar-action:active { transform: scale(.96); }
+.vbar-stat { display: flex; align-items: center; gap: 7px; color: rgba(255,255,255,.6); font-size: 13px; font-weight: 700; }
+
+/* Subtle exit / forfeit */
+.vbar-exit {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  color: rgba(255,255,255,.30); font-size: 18px; line-height: 1; cursor: pointer;
+  display: grid; place-items: center; transition: all .15s ease;
+}
+.vbar-exit:hover { background: rgba(255,77,61,.12); border-color: rgba(255,77,61,.25); color: #ff7a45; }
+
+/* Share toast */
+.vshare-toast {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 132px; z-index: 30;
+  padding: 9px 18px; border-radius: 12px;
+  background: rgba(12,12,18,.94); border: 1px solid rgba(255,255,255,.14);
+  color: #fff; font-size: 13px; font-weight: 700;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5); animation: vc-in .25s ease;
+}
+
+@media (max-width: 768px) {
+  .ctimer-box { width: 56px; height: 56px; border-radius: 16px; }
+  .ctimer-box svg { width: 56px; height: 56px; }
+  .ctimer-box .ctimer-text { font-size: 13px; }
+  .vturn-badge { left: 12px; top: 12px; }
+}
