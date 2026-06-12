@@ -1,15 +1,15 @@
 "use client";
 
-import { Play, User } from "lucide-react";
+import { Play } from "lucide-react";
 import type { MatchResult } from "@/lib/matchmaking";
-import type { XPBreakdown } from "@/lib/xp";
+import { type CloutBreakdown, outcomeLabel } from "@/lib/clout";
 
 export interface ResultsViewProps {
   isWin: boolean;
   isTie: boolean;
   profile: any;
   eloDelta: number;
-  xpResult: XPBreakdown | null;
+  xpResult: CloutBreakdown | null;
   aiFeedback: string | null;
   aiProcessing: boolean;
   userClout: number;
@@ -30,76 +30,70 @@ export interface ResultsViewProps {
 
 export default function ResultsView(props: ResultsViewProps) {
   const {
-    isWin, isTie, profile, eloDelta, xpResult,
-    aiFeedback, aiProcessing, userClout, opponentClout,
+    isWin, isTie, profile, xpResult,
+    aiFeedback, aiProcessing,
     userSideLabel, oppSideLabel, opponent, debateFormat,
     userSpeakTime, emojiCounts, videoComments, userMsgCount,
     debateTimer, textCurrentRound, totalRounds, handlePlayAgain,
   } = props;
 
+  const outcome = xpResult?.outcome;
+  const exhibition = outcome === "exhibition";
+
+  // Vote-based score (derived from the same tally that decided the match)
+  const totalVotes = xpResult?.totalVotes || 0;
+  const myVotes = totalVotes > 0 ? Math.round(((xpResult?.votePct || 0) / 100) * totalVotes) : 0;
+  const oppVotes = totalVotes - myVotes;
+
+  const verdictText = exhibition ? "EXHIBITION" : isTie ? "IT'S A TIE" : isWin ? "🏆 YOU WIN!" : "OPPONENT WINS";
+  const verdictClass = exhibition || isTie ? "verdict-tie" : isWin ? "verdict-win" : "verdict-lose";
+
   return (
     <div className="results-view">
       <div className="results-card">
         <div className="results-overline">DEBATE OVER</div>
-        <div className={`results-verdict ${isTie ? "verdict-tie" : isWin ? "verdict-win" : "verdict-lose"}`}>
-          {isTie ? "IT'S A TIE" : isWin ? "🏆 YOU WIN!" : "OPPONENT WINS"}
-        </div>
+        <div className={`results-verdict ${verdictClass}`}>{verdictText}</div>
 
-        {/* ELO + XP row */}
-        {profile && (
+        {/* Clout earned */}
+        {xpResult && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 12, marginTop: -8 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: eloDelta > 0 ? "#22c55e" : eloDelta < 0 ? "#ff4d3d" : "rgba(255,255,255,.40)" }}>
-              {eloDelta > 0 ? `+${eloDelta}` : eloDelta === 0 ? "±0" : `${eloDelta}`} ELO
+            <div style={{ fontSize: 18, fontWeight: 900, color: xpResult.total > 0 ? "#fbbf24" : "rgba(255,255,255,.40)" }}>
+              +{xpResult.total} Clout
             </div>
-            {xpResult && (
-              <div style={{ fontSize: 14, fontWeight: 800, color: xpResult.finalXP > 0 ? "#fbbf24" : "#ff4d3d" }}>
-                {xpResult.finalXP > 0 ? `+${xpResult.finalXP.toLocaleString()}` : xpResult.finalXP.toLocaleString()} XP
-              </div>
-            )}
           </div>
         )}
 
-        {/* XP Breakdown */}
-        {xpResult && xpResult.finalXP > 0 && (
+        {/* Clout breakdown */}
+        {xpResult && (
           <div style={{
             padding: "14px 18px", borderRadius: 14, marginBottom: 16,
             background: "rgba(251,191,36,.04)", border: "1px solid rgba(251,191,36,.10)",
             textAlign: "left",
           }}>
-            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: "rgba(251,191,36,.5)", marginBottom: 8 }}>XP BREAKDOWN</div>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: "rgba(251,191,36,.5)", marginBottom: 8 }}>CLOUT EARNED</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "rgba(255,255,255,.45)" }}>Completion</span>
-                <span style={{ fontWeight: 800, color: "rgba(255,255,255,.70)" }}>+{xpResult.base.toLocaleString()}</span>
+                <span style={{ color: "rgba(255,255,255,.45)" }}>{outcomeLabel(xpResult.outcome)}</span>
+                <span style={{ fontWeight: 800, color: isWin ? "#22c55e" : "rgba(255,255,255,.70)" }}>+{xpResult.base}</span>
               </div>
-              {xpResult.matchResult > 0 && (
+              {xpResult.decisiveBonus > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "rgba(255,255,255,.45)" }}>{isWin ? "Win Bonus" : "Participation"}</span>
-                  <span style={{ fontWeight: 800, color: isWin ? "#22c55e" : "rgba(255,255,255,.70)" }}>+{xpResult.matchResult.toLocaleString()}</span>
+                  <span style={{ color: "rgba(255,255,255,.45)" }}>Decisive win ({xpResult.votePct}%)</span>
+                  <span style={{ fontWeight: 800, color: "#fbbf24" }}>+{xpResult.decisiveBonus}</span>
                 </div>
               )}
-              {xpResult.voteMarginBonus > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "rgba(255,255,255,.45)" }}>Vote Margin</span>
-                  <span style={{ fontWeight: 800, color: "#fbbf24" }}>+{xpResult.voteMarginBonus.toLocaleString()}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,.06)", marginTop: 4, paddingTop: 6 }}>
+                <span style={{ color: "rgba(255,255,255,.65)", fontWeight: 800 }}>Total</span>
+                <span style={{ fontWeight: 900, color: "#fbbf24" }}>+{xpResult.total}</span>
+              </div>
+              {exhibition && (
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,.35)", marginTop: 4, lineHeight: 1.5 }}>
+                  No audience voted — this was a friendly exhibition. No win or loss recorded.
                 </div>
               )}
-              {xpResult.aiQualityBonus > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "rgba(255,255,255,.45)" }}>Quality Bonus</span>
-                  <span style={{ fontWeight: 800, color: "#a855f7" }}>+{xpResult.aiQualityBonus.toLocaleString()}</span>
-                </div>
-              )}
-              {xpResult.diminishingMultiplier < 1 && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "rgba(255,255,255,.30)" }}>Daily Cap</span>
-                  <span style={{ fontWeight: 700, color: "rgba(255,255,255,.30)" }}>×{xpResult.diminishingMultiplier}</span>
-                </div>
-              )}
-              {xpResult.streakMultiplier > 1 && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "rgba(255,255,255,.45)" }}>🔥 Streak Bonus</span>
-                  <span style={{ fontWeight: 800, color: "#ff7a45" }}>×{xpResult.streakMultiplier}</span>
+              {!exhibition && xpResult.totalVotes === 0 && (
+                <div style={{ fontSize: 11, color: "rgba(168,85,247,.6)", marginTop: 4, lineHeight: 1.5 }}>
+                  ⚖️ Decided by AI judge — no audience votes.
                 </div>
               )}
             </div>
@@ -115,7 +109,7 @@ export default function ResultsView(props: ResultsViewProps) {
             textAlign: "left",
           }}>
             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: isWin ? "rgba(34,197,94,.5)" : "rgba(168,85,247,.5)", marginBottom: 8 }}>
-              🤖 AI JUDGE
+              🤖 AI COACH
             </div>
             {aiProcessing && !aiFeedback ? (
               <div style={{ fontSize: 12, color: "rgba(255,255,255,.35)", fontStyle: "italic" }}>Analyzing your debate...</div>
@@ -125,29 +119,19 @@ export default function ResultsView(props: ResultsViewProps) {
           </div>
         )}
 
-        {/* XP Progress Bar */}
+        {/* Total Clout */}
         {profile && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.30)", marginBottom: 6 }}>
-              <span>{((profile as any).xp_total || 0).toLocaleString()} XP</span>
-              <span>1,000,000 XP</span>
-            </div>
-            <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,.06)", overflow: "hidden" }}>
-              <div style={{
-                height: "100%", borderRadius: 999,
-                background: "linear-gradient(90deg, #fbbf24, #ff7a45)",
-                width: `${Math.min(100, (((profile as any).xp_total || 0) / 1000000) * 100)}%`,
-                transition: "width 1s ease",
-                boxShadow: "0 0 12px rgba(251,191,36,.3)",
-              }} />
-            </div>
+          <div style={{ marginBottom: 16, textAlign: "center" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "rgba(255,255,255,.30)", marginBottom: 2 }}>TOTAL CLOUT</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "#fbbf24" }}>{((profile as any).xp_total || 0).toLocaleString()}</div>
           </div>
         )}
 
+        {/* Vote score row */}
         <div className="results-score-row">
-          <div className="result-score rs-user"><span className="result-score-label">{profile?.display_name || "You"}</span><span className="result-score-num">{userClout}</span><span className="result-score-sub">{userSideLabel}</span></div>
-          <div className="results-divider">VS</div>
-          <div className="result-score rs-opp"><span className="result-score-label">{opponent?.opponentDisplayName || "Opponent"}</span><span className="result-score-num">{opponentClout}</span><span className="result-score-sub">{oppSideLabel}</span></div>
+          <div className="result-score rs-user"><span className="result-score-label">{profile?.display_name || "You"}</span><span className="result-score-num">{totalVotes > 0 ? myVotes : "—"}</span><span className="result-score-sub">{userSideLabel}</span></div>
+          <div className="results-divider">{totalVotes > 0 ? "VOTES" : "VS"}</div>
+          <div className="result-score rs-opp"><span className="result-score-label">{opponent?.opponentDisplayName || "Opponent"}</span><span className="result-score-num">{totalVotes > 0 ? oppVotes : "—"}</span><span className="result-score-sub">{oppSideLabel}</span></div>
         </div>
         <div className="results-stats-row">
           {debateFormat === "video" ? (

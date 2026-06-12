@@ -20,6 +20,7 @@ interface FeedbackResult {
   feedbackWinner: string;
   feedbackLoser: string;
   scores: AIScores;
+  winner: "A" | "B" | "tie";
 }
 
 /**
@@ -38,7 +39,7 @@ interface FeedbackResult {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { matchId } = await req.json();
+    const { matchId, decideWinner } = await req.json();
     if (!matchId) {
       return NextResponse.json({ error: "Missing matchId" }, { status: 400 });
     }
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
     };
     let feedbackWinner = "Great debate! You made compelling arguments and earned this win. Keep that momentum going! 🏆";
     let feedbackLoser = "Close one! You showed real potential out there. Focus on addressing your opponent's points more directly next time, and you'll be taking W's in no time. 💪";
+    let aiWinner: "A" | "B" | "tie" | null = null;
 
     // For video debates with no text messages, create a summary transcript
     if (msgs.length === 0 && match.format === "video") {
@@ -109,6 +111,7 @@ export async function POST(req: NextRequest) {
         scores = result.scores;
         feedbackWinner = result.feedbackWinner;
         feedbackLoser = result.feedbackLoser;
+        aiWinner = result.winner;
       } catch (err) {
         console.error("AI analysis failed, using defaults:", err);
       }
@@ -130,6 +133,18 @@ export async function POST(req: NextRequest) {
         ai_feedback_b: isWinnerB ? feedbackWinner : feedbackLoser,
       })
       .eq("id", matchId);
+
+    // 5b. Empty-room fallback — write an AI-decided winner only if none exists yet.
+    if (decideWinner) {
+      let winnerId: string | null = null;
+      if (aiWinner === "A") winnerId = playerA?.id ?? null;
+      else if (aiWinner === "B") winnerId = playerB?.id ?? null;
+      await supabaseAdmin
+        .from("matches")
+        .update({ winner: winnerId })
+        .eq("id", matchId)
+        .is("winner", null);
+    }
 
     // 6. Handle toxicity strikes
     if (scores.toxicity_detected) {
@@ -187,8 +202,8 @@ Players: ${playerAName} (Player A) vs ${playerBName} (Player B)
 ${winnerSide ? `Winner: Player ${winnerSide}` : "Result: Tie"}
 
 IMPORTANT:
-- You do NOT decide the winner. The audience vote already determined that.
-- Your scores assess overall debate quality only.
+- Judge who argued more effectively as "winner": "A", "B", or "tie". This is used ONLY as a fallback when no audience voted.
+- Your scores assess overall debate quality.
 - quality_bonus_xp MUST be between 0–3000.
 - If any message contains hate speech, threats, or extreme toxicity, set toxicity_detected to true and quality_bonus_xp to 0.
 - Winner feedback should be 2-3 sentences, energetic and specific.
@@ -202,7 +217,8 @@ Respond in EXACTLY this JSON format (no markdown, no code blocks):
   "toxicity_detected": <true/false>,
   "quality_bonus_xp": <0-3000>,
   "feedback_winner": "<personalized winner message>",
-  "feedback_loser": "<personalized loser message>"
+  "feedback_loser": "<personalized loser message>",
+  "winner": "A" | "B" | "tie"
 }`;
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -247,6 +263,7 @@ Respond in EXACTLY this JSON format (no markdown, no code blocks):
     },
     feedbackWinner: parsed.feedback_winner || "Amazing debate! You earned this win! 🏆",
     feedbackLoser: parsed.feedback_loser || "Great effort! Keep debating and you'll keep improving. 💪",
+    winner: parsed.winner === "A" || parsed.winner === "B" ? parsed.winner : "tie",
   };
 }
 

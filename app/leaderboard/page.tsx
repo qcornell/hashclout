@@ -33,7 +33,7 @@ export default function LeaderboardPage() {
       const { data } = await supabase
         .from('profiles')
         .select('*')
-        .order('elo_rating', { ascending: false })
+        .order('xp_total', { ascending: false })
         .limit(100)
       if (data) setPlayers(data)
       setLoading(false)
@@ -78,7 +78,7 @@ export default function LeaderboardPage() {
                 <div style={{ fontSize: 28, marginBottom: 6 }}>🥈</div>
                 <div style={s.podiumName}>{top3[1].display_name}</div>
                 <div style={s.podiumUser}>@{top3[1].username}</div>
-                <div style={{ ...s.podiumElo, color: 'rgba(255,255,255,.65)' }}>{top3[1].elo_rating}</div>
+                <div style={{ ...s.podiumElo, color: 'rgba(255,255,255,.65)' }}>{(top3[1].xp_total || 0).toLocaleString()}</div>
                 <div style={s.podiumRecord}>{top3[1].wins}W - {top3[1].losses}L</div>
               </div>
             ) : <div style={{ order: 1 }} />}
@@ -89,11 +89,8 @@ export default function LeaderboardPage() {
                 <div style={{ fontSize: 32, marginBottom: 6 }}>👑</div>
                 <div style={{ ...s.podiumName, fontSize: 15, fontWeight: 900 }}>{top3[0].display_name}</div>
                 <div style={s.podiumUser}>@{top3[0].username}</div>
-                <div style={{ ...s.podiumElo, color: '#fbbf24', fontSize: 28, textShadow: '0 0 20px rgba(251,191,36,.3)' }}>{top3[0].elo_rating}</div>
+                <div style={{ ...s.podiumElo, color: '#fbbf24', fontSize: 28, textShadow: '0 0 20px rgba(251,191,36,.3)' }}>{(top3[0].xp_total || 0).toLocaleString()}</div>
                 <div style={s.podiumRecord}>{top3[0].wins}W - {top3[0].losses}L</div>
-                {top3[0].xp_total > 0 && (
-                  <div style={{ color: '#fbbf24', fontSize: 11, fontWeight: 800, marginTop: 4 }}>{top3[0].xp_total.toLocaleString()} XP</div>
-                )}
                 {top3[0].win_streak > 0 && (
                   <div style={{ color: '#ff7a45', fontSize: 12, fontWeight: 700, marginTop: 4 }}>🔥 {top3[0].win_streak} streak</div>
                 )}
@@ -106,7 +103,7 @@ export default function LeaderboardPage() {
                 <div style={{ fontSize: 28, marginBottom: 6 }}>🥉</div>
                 <div style={s.podiumName}>{top3[2].display_name}</div>
                 <div style={s.podiumUser}>@{top3[2].username}</div>
-                <div style={{ ...s.podiumElo, color: '#fb923c' }}>{top3[2].elo_rating}</div>
+                <div style={{ ...s.podiumElo, color: '#fb923c' }}>{(top3[2].xp_total || 0).toLocaleString()}</div>
                 <div style={s.podiumRecord}>{top3[2].wins}W - {top3[2].losses}L</div>
               </div>
             ) : <div style={{ order: 3 }} />}
@@ -132,7 +129,7 @@ export default function LeaderboardPage() {
                   <span style={s.rowUser}>@{player.username}</span>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <span style={s.rowElo}>{player.elo_rating}</span>
+                  <span style={s.rowElo}>{(player.xp_total || 0).toLocaleString()}</span>
                 </div>
                 <div style={s.rowStats}>
                   <span style={{ color: 'rgba(34,197,94,.6)', fontSize: 12, fontWeight: 700 }}>{player.wins}W</span>

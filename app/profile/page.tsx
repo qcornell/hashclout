@@ -181,28 +181,17 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* ELO + XP */}
+        {/* Clout + Win Rate */}
         <div style={{ display: "flex", gap: 12 }}>
-          <div style={{ ...styles.eloCard, flex: 1 }}>
-            <div style={styles.eloNum}>{profile.elo_rating}</div>
-            <div style={styles.eloLabel}>ELO RATING</div>
-          </div>
           <div style={{ ...styles.eloCard, flex: 1 }}>
             <div style={{ ...styles.eloNum, background: "linear-gradient(135deg, #fbbf24, #ff7a45)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
               {((profile as any).xp_total || 0).toLocaleString()}
             </div>
-            <div style={styles.eloLabel}>TOTAL XP</div>
-            <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,.06)", overflow: "hidden", marginTop: 8 }}>
-              <div style={{
-                height: "100%", borderRadius: 999,
-                background: "linear-gradient(90deg, #fbbf24, #ff7a45)",
-                width: `${Math.min(100, (((profile as any).xp_total || 0) / 1000000) * 100)}%`,
-                transition: "width 1s ease",
-              }} />
-            </div>
-            <div style={{ fontSize: 9, color: "rgba(255,255,255,.20)", marginTop: 4 }}>
-              {((profile as any).xp_total || 0).toLocaleString()} / 1,000,000
-            </div>
+            <div style={styles.eloLabel}>CLOUT</div>
+          </div>
+          <div style={{ ...styles.eloCard, flex: 1 }}>
+            <div style={styles.eloNum}>{profile.total_battles ? Math.round((profile.wins / profile.total_battles) * 100) : 0}%</div>
+            <div style={styles.eloLabel}>WIN RATE</div>
           </div>
         </div>
 
