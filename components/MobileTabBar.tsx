@@ -2,11 +2,12 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Flame, Trophy, User, Eye } from "lucide-react";
+import { Flame, Trophy, User, Eye, Skull } from "lucide-react";
 
 const TABS = [
   { href: "/", label: "LIVE", icon: Flame },
   { href: "/watch", label: "WATCH", icon: Eye },
+  { href: "/roast", label: "ROAST", icon: Skull },
   { href: "/leaderboard", label: "CLOUT", icon: Trophy },
   { href: "/profile", label: "YOU", icon: User },
 ];
@@ -34,7 +35,7 @@ export default function MobileTabBar() {
             background: "none", border: "none", textDecoration: "none",
             color: active ? "#ff4d3d" : "rgba(255,255,255,.25)",
             fontSize: 10, fontWeight: 600, letterSpacing: ".06em",
-            padding: "6px 16px", transition: "color .2s",
+            padding: "6px 10px", transition: "color .2s",
           }}>
             <span style={{
               filter: active ? "drop-shadow(0 0 6px rgba(255,77,61,.4))" : "none",
